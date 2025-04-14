@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="300" height="180" viewBox="0 0 300 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with grid pattern -->
+  <rect width="300" height="180" fill="#F8F9FA"/>
+  <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#E2E8F0" stroke-width="0.5"/>
+  </pattern>
+  <rect width="300" height="180" fill="url(#grid)"/>
+  
+  <!-- Database Icon at the center - improved version with updated color #55b9cd -->
+  <g transform="translate(110, 45)">
+    <!-- Database cylinder with proper perspective -->
+    <ellipse cx="40" cy="15" rx="40" ry="15" stroke="#55b9cd" stroke-width="2" fill="none"/>
+    <path d="M 0 15 C 0 15 0 75 0 75 C 0 83.28 17.91 90 40 90 C 62.09 90 80 83.28 80 75 C 80 75 80 15 80 15" 
+      stroke="#55b9cd" stroke-width="2" fill="none"/>
+    <ellipse cx="40" cy="75" rx="40" ry="15" stroke="#55b9cd" stroke-width="2" fill="none"/>
+    
+    <!-- Horizontal lines to show database structure -->
+    <ellipse cx="40" cy="35" rx="40" ry="15" stroke="#55b9cd" stroke-width="1" stroke-dasharray="2 2" fill="none"/>
+    <ellipse cx="40" cy="55" rx="40" ry="15" stroke="#55b9cd" stroke-width="1" stroke-dasharray="2 2" fill="none"/>
+    
+    <!-- Subtle inner glow with updated color -->
+    <ellipse cx="40" cy="15" rx="30" ry="10" stroke="#7dd3e7" stroke-width="0.8" fill="none" opacity="0.6"/>
+    <ellipse cx="40" cy="75" rx="30" ry="10" stroke="#7dd3e7" stroke-width="0.8" fill="none" opacity="0.6"/>
+  </g>
+</svg>
