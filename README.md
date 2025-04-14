@@ -54,20 +54,24 @@ VITE_POCKETBASE_URL=http://127.0.0.1:8090
 ```
 You can modify this URL if your Pocketbase instance is running on a different host or port.
 
-4. Start the development server:
+4. Apply Pocketbase migrations:
+```bash
+pocketbase migrate
+```
+
+5. Start the development server:
 ```bash
 npm run dev
 ```
 
-5. Run the Pocketbase backend:
+6. Run the Pocketbase backend:
 ```bash
 pocketbase serve
 ```
-No additional setup is required for Pocketbase, as it will automatically create the necessary collections and records.
 
-6. Open [http://localhost:8080](http://localhost:8080) in your browser.
+7. Open [http://localhost:8080](http://localhost:8080) in your browser.
 
-7. Add your Gemini API key in the settings menu of the application.
+8. Add your Gemini API key in the settings menu of the application.
 
 ### Setup OAuth (Optional)
 The application supports 3 authentication methods : **Email, Google, GitHub**. You can login/register using email address and password, but if you want to connect using your Google or GitHub account, you must do some configurations.
