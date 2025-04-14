@@ -185,9 +185,6 @@ Your response should have two distinct parts:
 - insertDataSQL: All INSERT statements with sample data
 
 Use the specific syntax for ${databaseType} in both sections.`;
-
-    console.log("Structured prompt:", prompt);
-
     // Generate SQL using Gemini with structured response feature
     const result = await generateText(prompt, apiKey, true, responseSchema);
 
