@@ -1,4 +1,4 @@
-# FakerDB
+# <img src="https://github.com/user-attachments/assets/9aed213d-4630-4d4c-97fd-f3a53468150a" alt="FakerDB Logo" width="38" height="38" style="vertical-align: middle;"> FakerDB
 
 FakerDB is an AI-powered SQL data generator that helps developers create realistic test data for database tables. Using Google's Gemini AI, it generates the ready to copy-paste SQL statements for both table schema and sample data across multiple SQL dialects.
 
