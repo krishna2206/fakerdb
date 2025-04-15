@@ -1,5 +1,6 @@
 import { generateText } from "@/lib/geminiClient";
 import { getProject } from "@/services/projectService";
+import { TableField } from "@/types/types";
 import { getApiKey } from "@/utils/apiKeyUtils";
 import { needsLength } from "@/utils/fieldTypes";
 import { Edge, Node } from "@xyflow/react";
@@ -62,9 +63,9 @@ export async function generateSQLFromDiagram(
       prompt += `\nFields:`;
 
       // Add fields
-      (table.data.fields as any[]).forEach((field: any) => {
+      (table.data.fields as TableField[]).forEach((field: TableField) => {
         // Format the type to include length for applicable types
-        let typeStr = field.type;
+        let typeStr: string = field.type;
         if (needsLength(field.type) && field.length !== undefined) {
           typeStr = `${field.type}(${field.length})`;
         }
