@@ -391,6 +391,75 @@ function DiagramEditorContent({
 
   const addNewTable = useCallback(() => {
     const newId = `table_${Date.now()}`;
+    
+    // Default position (in case there are no nodes)
+    let positionX = 250;
+    let positionY = 100;
+    
+    // Table node dimensions (approximate)
+    const TABLE_WIDTH = 220;
+    const TABLE_HEIGHT = 200;
+    const SPACING = 50;
+    
+    // Get last node position to place next to it
+    if (nodes.length > 0) {
+      const lastNode = nodes[nodes.length - 1];
+      
+      // Start by positioning to the right of the last node
+      positionX = lastNode.position.x + TABLE_WIDTH + SPACING;
+      positionY = lastNode.position.y;
+      
+      // If we're getting too far to the right, create a new row
+      const MAX_X = 2000; // prevent nodes from going too far right
+      if (positionX > MAX_X) {
+        positionX = 250;
+        // Find the maximum Y to start a new row below all existing nodes
+        const maxY = Math.max(...nodes.map(node => node.position.y + TABLE_HEIGHT));
+        positionY = maxY + SPACING;
+      }
+      
+      // Check for overlaps with any existing node
+      let hasOverlap = true;
+      let attemptCount = 0;
+      const MAX_ATTEMPTS = 10;
+      
+      while (hasOverlap && attemptCount < MAX_ATTEMPTS) {
+        hasOverlap = false;
+        
+        // Check if the new position overlaps with any existing node
+        for (const node of nodes) {
+          // Simple bounding box overlap check
+          const overlap = !(
+            positionX + TABLE_WIDTH < node.position.x || 
+            positionX > node.position.x + TABLE_WIDTH ||
+            positionY + TABLE_HEIGHT < node.position.y ||
+            positionY > node.position.y + TABLE_HEIGHT
+          );
+          
+          if (overlap) {
+            hasOverlap = true;
+            
+            // Move to the right on initial attempts
+            if (attemptCount < 3) {
+              positionX += TABLE_WIDTH / 2;
+            } else if (attemptCount < 6) {
+              // Then try moving down a bit
+              positionX = node.position.x;
+              positionY += TABLE_HEIGHT + SPACING;
+            } else {
+              // Last resort: move to a slightly random position, but still arranged
+              positionX = 250 + Math.random() * 100;
+              positionY = Math.max(...nodes.map(n => n.position.y + TABLE_HEIGHT)) + SPACING;
+            }
+            
+            break;
+          }
+        }
+        
+        attemptCount++;
+      }
+    }
+
     const newNode = {
       id: newId,
       type: "tableNode",
@@ -409,24 +478,35 @@ function DiagramEditorContent({
         ],
       },
       position: {
-        x: Math.random() * 400 + 100,
-        y: Math.random() * 400 + 100,
+        x: positionX,
+        y: positionY,
       },
     };
 
     // Update nodes state
     setNodes((nds) => [...nds, newNode]);
 
+    // Select the new node and open sidebar
     setTimeout(() => {
       setSelectedNode(newNode);
-    }, 0);
+      setSidebarOpen(true);
+      
+      // Scroll the node into view if it's outside the visible area
+      if (reactFlowInstance) {
+        reactFlowInstance.fitView({
+          nodes: [newNode],
+          padding: 0.5,
+          duration: 600,
+        });
+      }
+    }, 50);
 
     toast({
       title: "New table added",
       description: "Click on the table to edit its properties",
     });
     setHasUnsavedChanges(true);
-  }, [nodes, setNodes, toast]);
+  }, [nodes, setNodes, toast, reactFlowInstance]);
 
   const updateNodeData = useCallback(
     (
