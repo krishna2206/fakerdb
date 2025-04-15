@@ -49,10 +49,7 @@ interface TableNodeData {
 }
 
 export interface TablePropertiesProps {
-  node: {
-    id: string;
-    data: TableNodeData;
-  };
+  node: Node;
   updateNodeData: (nodeId: string, data: TableNodeData) => void;
   removeNode: (nodeId: string) => void;
   onClose?: () => void;
@@ -68,10 +65,12 @@ export default function TablePropertiesSidebar({
   edges = [],
   nodes = [],
 }: TablePropertiesProps) {
-  const [tableName, setTableName] = useState(node.data.name || "");
-  const [fields, setFields] = useState<TableField[]>(node.data.fields || []);
+  const [tableName, setTableName] = useState((node.data.name as string) || "");
+  const [fields, setFields] = useState<TableField[]>(
+    (node.data.fields as TableField[]) || []
+  );
   const [contextDescription, setContextDescription] = useState(
-    node.data.contextDescription || ""
+    (node.data.contextDescription as string) || ""
   );
   const { toast } = useToast();
 
@@ -133,7 +132,11 @@ export default function TablePropertiesSidebar({
 
   const handleTableNameChange = (newName: string) => {
     setTableName(newName);
-    updateNodeData(node.id, { name: newName, fields, contextDescription });
+    updateNodeData(node.id, {
+      name: newName as string,
+      fields,
+      contextDescription,
+    });
   };
 
   const handleContextDescriptionChange = (description: string) => {

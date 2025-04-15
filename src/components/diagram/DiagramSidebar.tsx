@@ -11,10 +11,7 @@ interface TableNodeData {
 }
 
 type DiagramSidebarProps = {
-  node?: {
-    id: string,
-    data: TableNodeData
-  };
+  node?: Node;
   updateNodeData?: (nodeId: string, data: TableNodeData) => void;
   removeNode?: (nodeId: string) => void;
   onClose?: () => void;
