@@ -35,11 +35,6 @@ const Navbar: React.FC<NavbarProps> = ({
     logout(() => navigate("/"));
   };
 
-  // Handle navigation to different routes
-  const handleNavigation = (path: string) => {
-    navigate(path);
-  };
-
   return (
     <div className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <Container>

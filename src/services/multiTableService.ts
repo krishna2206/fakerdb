@@ -20,10 +20,8 @@ export async function generateSQLFromDiagram(
   edges: Edge[]
 ): Promise<{ createTableSQL: string; insertDataSQL: string }> {
   try {
-    // Get project details to determine which API key to use
     const project = await getProject(projectId);
 
-    // Get the API key from the project or global settings
     const apiKey = getApiKey(project);
 
     // Calculate optimal creation order based on relationships
@@ -46,10 +44,8 @@ export async function generateSQLFromDiagram(
       tableRelations
     );
 
-    // Generate schema description with a structured English approach
     let prompt = `Generate database content for a ${databaseType} database based on the following schema:`;
 
-    // Add table definitions in the correct creation order
     prompt += "\n\nTables (in the order they should be created):";
 
     creationOrder.forEach((tableName, index) => {
@@ -108,7 +104,6 @@ export async function generateSQLFromDiagram(
     // Add database-specific syntax guidance
     prompt += `\n\nImportant: Follow these specific syntax rules for ${databaseType}:`;
 
-    // Add the same syntax guidance as in the createMultiTablePrompt function
     switch (databaseType) {
       case "MySQL":
         prompt += `
@@ -157,7 +152,6 @@ export async function generateSQLFromDiagram(
 3. For foreign key fields, use only valid primary key values from the referenced tables
 4. Make the relationship data logical and consistent with the table context`;
 
-    // Define the response schema for structured output
     const responseSchema = {
       type: "OBJECT",
       properties: {
@@ -185,15 +179,12 @@ Your response should have two distinct parts:
 - insertDataSQL: All INSERT statements with sample data
 
 Use the specific syntax for ${databaseType} in both sections.`;
-    // Generate SQL using Gemini with structured response feature
     const result = await generateText(prompt, apiKey, true, responseSchema);
 
-    // Check that we have a valid structured response
     if (!result || typeof result !== "object") {
       throw new Error("Invalid response format from AI model");
     }
 
-    // Ensure the required properties are present
     if (!result.createTableSQL || !result.insertDataSQL) {
       throw new Error("Incomplete data received from AI model");
     }

@@ -7,11 +7,19 @@ interface DiagramData {
   previewImage?: string;
 }
 
+/**
+ * Saves or updates a project's diagram data in the database.
+ * @param projectId - The ID of the project to save the diagram for.
+ * @param nodes - Array of diagram nodes representing tables.
+ * @param edges - Array of diagram edges representing relationships between tables.
+ * @param previewImage - Optional base64 encoded preview image of the diagram.
+ * @returns A promise that resolves when the operation is complete.
+ */
 export const saveProjectDiagram = async (
   projectId: string, 
   nodes: Node[], 
   edges: Edge[],
-  previewImage?: string // Optional preview image as base64 data URL
+  previewImage?: string
 ): Promise<void> => {
   try {
     // Check if diagram exists for this project
@@ -27,10 +35,8 @@ export const saveProjectDiagram = async (
     };
     
     if (existingDiagrams.totalItems > 0) {
-      // Update existing diagram
       await pb.collection('diagrams').update(existingDiagrams.items[0].id, diagramData);
     } else {
-      // Create new diagram
       await pb.collection('diagrams').create(diagramData);
     }
     
@@ -45,6 +51,11 @@ export const saveProjectDiagram = async (
   }
 };
 
+/**
+ * Fetches a project's diagram data from the database.
+ * @param projectId - The ID of the project to fetch the diagram for.
+ * @returns A promise resolving to the diagram data or null if no diagram exists.
+ */
 export const getProjectDiagram = async (projectId: string): Promise<DiagramData | null> => {
   try {
     const diagrams = await pb.collection('diagrams').getList(1, 1, {
@@ -111,9 +122,9 @@ export const getProjectDiagramCounts = async (projectIds: string[]): Promise<Rec
 };
 
 /**
- * Fetches preview images for multiple projects
- * @param projectIds - An array of project IDs
- * @returns A promise resolving to a map of projectId -> preview image
+ * Fetches preview images for multiple projects.
+ * @param projectIds - An array of project IDs.
+ * @returns A promise resolving to a map of projectId -> preview image URL.
  */
 export const getProjectPreviewImages = async (projectIds: string[]): Promise<Record<string, string>> => {
   if (projectIds.length === 0) {
@@ -131,8 +142,7 @@ export const getProjectPreviewImages = async (projectIds: string[]): Promise<Rec
     });
 
     const previewImages: Record<string, string> = {};
-    
-    // Default placeholder for projects without preview images
+
     const defaultPreviewImage = '/placeholder-diagram.svg';
     
     diagrams.forEach(diagram => {

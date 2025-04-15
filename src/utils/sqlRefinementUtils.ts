@@ -2,6 +2,15 @@ import { generateText } from "@/lib/geminiClient";
 import { Project } from "@/types/types";
 import { getApiKey, validateApiKey } from "@/utils/apiKeyUtils";
 
+/**
+ * Refines SQL statements using the Gemini AI model
+ * @param {string} sql - The original SQL statement to refine
+ * @param {"create" | "insert"} sqlType - The type of SQL statement (create or insert)
+ * @param {string} databaseType - The target database type (e.g., MySQL, PostgreSQL)
+ * @param {Project} [project] - Optional project object for multi-table mode
+ * @returns {Promise<string>} The refined SQL statement
+ * @throws {Error} If refinement fails or API key is invalid
+ */
 export async function refineSQLWithGemini(
   sql: string,
   sqlType: "create" | "insert",
@@ -54,6 +63,14 @@ export async function refineSQLWithGemini(
   }
 }
 
+/**
+ * Creates a prompt for the AI model to refine SQL statements
+ * @param {string} sql - The original SQL statement to refine
+ * @param {"create" | "insert"} sqlType - The type of SQL statement (create or insert)
+ * @param {string} databaseType - The target database type (e.g., MySQL, PostgreSQL)
+ * @returns {string} The formatted prompt for the AI model
+ * @private
+ */
 function createSQLRefinementPrompt(
   sql: string,
   sqlType: "create" | "insert",

@@ -18,7 +18,6 @@ export async function generateData(
   console.log("AI Service: Generating data for", tableDefinition);
 
   try {
-    // Enforce the maximum row count limit server-side
     const safeRowCount = Math.min(rowCount, MAX_ROW_COUNT);
     if (safeRowCount < rowCount) {
       console.warn(
@@ -26,9 +25,8 @@ export async function generateData(
       );
     }
 
-    // For single table mode, ensure we always use the global API key
     try {
-      // Get the global API key
+      // Always use global API key for single table mode
       const validation = validateApiKey();
       if (!validation.valid || !validation.apiKey) {
         throw new Error(
@@ -36,8 +34,6 @@ export async function generateData(
           "No API key available. Please set a global API key in settings."
         );
       }
-      
-      // Pass the global API key directly instead of the project
       return await generateDataWithGemini(
         tableDefinition,
         safeRowCount,
@@ -45,11 +41,11 @@ export async function generateData(
       );
     } catch (error) {
       console.error("Error using Gemini API:", error);
-      throw error; // Rethrow the error instead of falling back to mock data
+      throw error;
     }
   } catch (error) {
     console.error("Error generating data:", error);
-    throw error; // Ensure errors are always propagated to the UI
+    throw error;
   }
 }
 
@@ -66,10 +62,8 @@ async function generateDataWithGemini(
   rowCount: number,
   apiKey: string
 ): Promise<GeneratedData> {
-  // Create a detailed prompt for the AI
   const prompt = createGeminiPrompt(tableDefinition, rowCount);
 
-  // Define response schema for structured output with JSON strings
   const responseSchema = {
     type: "OBJECT",
     properties: {
@@ -96,15 +90,12 @@ async function generateDataWithGemini(
     propertyOrdering: ["createTableSQL", "insertDataSQL", "rawData"],
   };
 
-  // Call the Gemini API with the API key
   const result = await generateText(prompt, apiKey, true, responseSchema);
 
-  // Validate the response structure
   if (!result || typeof result !== "object") {
     throw new Error("Invalid response format from AI model");
   }
 
-  // Ensure all required properties are present
   if (
     !result.createTableSQL ||
     !result.insertDataSQL ||
@@ -113,22 +104,17 @@ async function generateDataWithGemini(
     throw new Error("Incomplete data received from AI model");
   }
 
-  // Check if we have data rows
   if (result.rawData.length === 0) {
     throw new Error("No sample data rows were generated");
   }
 
-  // After receiving the response:
   if (Array.isArray(result.rawData)) {
-    // Parse each string in the array into a JSON object
     const parsedData = result.rawData.map((jsonString) => {
       try {
-        // If it's already an object, return it; otherwise parse the string
         if (typeof jsonString === "object") return jsonString;
         return JSON.parse(jsonString);
       } catch (error) {
         console.error("Error parsing JSON string:", error, jsonString);
-        // Return an empty object as fallback
         return {};
       }
     });
@@ -178,7 +164,6 @@ function createGeminiPrompt(
     })
     .join("\n");
 
-  // Start with the basic prompt
   let prompt = `Generate database content for a ${tableDefinition.databaseType} table named '${tableDefinition.name}' with the following fields:
 ${fieldsDescription}`;
 
@@ -251,7 +236,7 @@ You will return a structured JSON response with the following fields:
 
 Format the SQL with proper indentation and spacing to ensure readability.`;
 
-  // Add to the prompt instructions:
+  // Prompt used to generate the raw data used by data preview
   prompt += `\n\nPlease format the rawData as an array of JSON strings (not objects), where each string is a valid JSON object with property names matching the field names.`;
 
   return prompt;

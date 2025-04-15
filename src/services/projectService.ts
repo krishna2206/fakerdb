@@ -1,7 +1,13 @@
 import pb from '@/lib/pocketbaseClient';
 import { Project } from '@/types/types';
 
-// Project Collection Functions
+/**
+ * Fetches projects for the currently authenticated user with optional pagination and search.
+ * @param page - The page number to fetch (starting from 1).
+ * @param perPage - Number of projects per page.
+ * @param searchTerm - Optional search term to filter projects by name or description.
+ * @returns Promise resolving to object containing paginated projects, total count, and page info.
+ */
 export const fetchProjects = async (
   page: number = 1, 
   perPage: number = 12, 
@@ -48,6 +54,12 @@ export const fetchProjects = async (
   }
 };
 
+/**
+ * Retrieves a specific project by its ID.
+ * @param projectId - The ID of the project to fetch.
+ * @returns Promise resolving to the project data.
+ * @throws Error if project not found or user lacks access.
+ */
 export const getProject = async (projectId: string): Promise<Project> => {
   try {
     const record = await pb.collection('projects').getOne(projectId);
@@ -67,6 +79,12 @@ export const getProject = async (projectId: string): Promise<Project> => {
   }
 };
 
+/**
+ * Creates a new project for the currently authenticated user.
+ * @param projectData - The data for the new project (without id, createdAt, updatedAt).
+ * @returns Promise resolving to the newly created project with server-assigned fields.
+ * @throws Error if user not authenticated or data validation fails.
+ */
 export const createProject = async (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<Project> => {
   try {
     const user = pb.authStore.record;
@@ -101,6 +119,13 @@ export const createProject = async (projectData: Omit<Project, 'id' | 'createdAt
   }
 };
 
+/**
+ * Updates an existing project with the provided data.
+ * @param projectId - The ID of the project to update.
+ * @param projectData - Partial project data containing fields to update.
+ * @returns Promise resolving to the updated project.
+ * @throws Error if project not found or user lacks access.
+ */
 export const updateProject = async (projectId: string, projectData: Partial<Project>): Promise<Project> => {
   try {
     const record = await pb.collection('projects').update(projectId, projectData);
@@ -121,6 +146,12 @@ export const updateProject = async (projectId: string, projectData: Partial<Proj
   }
 };
 
+/**
+ * Deletes a project by its ID.
+ * @param projectId - The ID of the project to delete.
+ * @returns Promise that resolves when the project is successfully deleted.
+ * @throws Error if project not found or user lacks access.
+ */
 export const deleteProject = async (projectId: string): Promise<void> => {
   try {
     await pb.collection('projects').delete(projectId);

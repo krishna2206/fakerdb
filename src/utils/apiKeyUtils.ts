@@ -4,6 +4,13 @@
 
 import { Project } from "@/types/types";
 
+/**
+ * Validates if a Gemini API key exists and is not expired
+ * @returns {Object} Validation result with the following properties:
+ * @returns {boolean} valid - Whether the API key is valid
+ * @returns {Error} [error] - Error object if validation fails
+ * @returns {string} [apiKey] - The valid API key if found
+ */
 export function validateApiKey(): { valid: boolean; error?: Error; apiKey?: string } {
   try {
     // Check for API key in local storage
