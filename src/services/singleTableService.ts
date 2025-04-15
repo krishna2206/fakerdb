@@ -11,12 +11,10 @@ export const MAX_ROW_COUNT = 50;
  * @returns Promise resolving to generated SQL statements and data
  * @throws Error if API key is missing, expired, or if data generation fails
  */
-export async function generateData(
+export async function generateSingleTableData(
   tableDefinition: TableDefinition,
-  rowCount: number,
+  rowCount: number
 ): Promise<GeneratedData> {
-  console.log("AI Service: Generating data for", tableDefinition);
-
   try {
     const safeRowCount = Math.min(rowCount, MAX_ROW_COUNT);
     if (safeRowCount < rowCount) {
@@ -30,10 +28,11 @@ export async function generateData(
       const validation = validateApiKey();
       if (!validation.valid || !validation.apiKey) {
         throw new Error(
-          validation.error?.message || 
-          "No API key available. Please set a global API key in settings."
+          validation.error?.message ||
+            "No API key available. Please set a global API key in settings."
         );
       }
+
       return await generateDataWithGemini(
         tableDefinition,
         safeRowCount,
@@ -62,7 +61,7 @@ async function generateDataWithGemini(
   rowCount: number,
   apiKey: string
 ): Promise<GeneratedData> {
-  const prompt = createGeminiPrompt(tableDefinition, rowCount);
+  const prompt = createSingletablePrompt(tableDefinition, rowCount);
 
   const responseSchema = {
     type: "OBJECT",
@@ -77,8 +76,7 @@ async function generateDataWithGemini(
       },
       rawData: {
         type: "ARRAY",
-        description:
-          `Generated sample data for ${rowCount} rows as an array of JSON strings, each representing a row of data`,
+        description: `Generated sample data for ${rowCount} rows as an array of JSON strings, each representing a row of data`,
         items: {
           type: "STRING",
           description:
@@ -140,7 +138,7 @@ async function generateDataWithGemini(
  * @param rowCount - Number of rows to generate
  * @returns Formatted prompt string for the AI model
  */
-function createGeminiPrompt(
+function createSingletablePrompt(
   tableDefinition: TableDefinition,
   rowCount: number
 ): string {

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { AuthUser } from "@/hooks/useAuth";
 import {
   ArrowLeft, Save,
   Settings,
@@ -14,7 +15,7 @@ interface DiagramToolbarProps {
   hasUnsavedChanges: boolean;
   isGenerating: boolean;
   apiKeyMissing?: boolean;
-  user?: { name?: string; email?: string; picture?: string };
+  user?: AuthUser;
   onBack: () => void;
   onAddTable: () => void;
   onSave: () => void;

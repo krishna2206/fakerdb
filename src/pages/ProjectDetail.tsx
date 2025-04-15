@@ -8,9 +8,9 @@ import LoadingSpinner from "@/components/ui/loading-spinner";
 import { useToast } from "@/components/ui/use-toast";
 import { useApiKey } from "@/hooks/useApiKey";
 import { useAuth } from "@/hooks/useAuth";
-import { generateSQLFromDiagram } from "@/services/multiTableService";
+import { generateMultitableData } from "@/services/multiTableService";
 import { getProject } from "@/services/projectService";
-import { Project } from "@/types/types";
+import { GeneratedData, Project } from "@/types/types";
 import { Edge, Node } from "@xyflow/react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -28,7 +28,7 @@ const ProjectDetail = () => {
   const [isProjectSettingsOpen, setIsProjectSettingsOpen] = useState(false);
   const [apiKeyRefresh, setApiKeyRefresh] = useState(0);
   const { apiKey, isApiKeyExpired } = useApiKey(apiKeyRefresh);
-  const [generatedSQL, setGeneratedSQL] = useState<{ createTableSQL: string; insertDataSQL: string } | string>("");
+  const [generatedSQL, setGeneratedSQL] = useState<GeneratedData>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showIndicator, setShowIndicator] = useState(false);
   const [showSQLResults, setShowSQLResults] = useState(false);
@@ -86,14 +86,14 @@ const ProjectDetail = () => {
   const handleGenerateSQL = async (
     nodes: Node[],
     edges: Edge[]
-  ): Promise<{ createTableSQL: string; insertDataSQL: string; }> => {
+  ): Promise<GeneratedData> => {
     if (!project) return null;
 
     setIsGenerating(true);
     setShowSQLResults(false);
 
     try {
-      const sql = await generateSQLFromDiagram(
+      const sql = await generateMultitableData(
         project.id,
         project.databaseType,
         nodes,

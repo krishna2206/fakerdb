@@ -11,7 +11,7 @@ import { FadeIn } from "@/components/ui/fade-in";
 import { useToast } from "@/components/ui/use-toast";
 import { useApiKey } from "@/hooks/useApiKey";
 import { useAuth } from "@/hooks/useAuth";
-import { generateData } from "@/services/singleTableService";
+import { generateSingleTableData } from "@/services/singleTableService";
 import { GeneratedData, TableDefinition } from "@/types/types";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -86,7 +86,7 @@ const SingleTabMode = () => {
         );
       }
 
-      const data = await generateData(definition, rowCount);
+      const data = await generateSingleTableData(definition, rowCount);
 
       if (!data) {
         throw new Error("Failed to generate data. Please try again.");

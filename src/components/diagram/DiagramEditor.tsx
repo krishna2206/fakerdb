@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { AuthUser } from "@/hooks/useAuth";
 import {
   getProjectDiagram,
   saveProjectDiagram,
 } from "@/services/diagramService";
-import { Project, TableField } from "@/types/types";
+import { GeneratedData, Project, TableField } from "@/types/types";
 import {
   addEdge,
   Background,
@@ -104,8 +105,8 @@ interface DiagramEditorProps {
   onGenerateSQL: (
     nodes: Node[],
     edges: Edge[]
-  ) => Promise<{ createTableSQL: string; insertDataSQL: string }>;
-  user?: { name?: string; email?: string; picture?: string };
+  ) => Promise<GeneratedData>;
+  user?: AuthUser;
   onLogout?: () => void;
 }
 
@@ -134,10 +135,7 @@ function DiagramEditorContent({
   const [, takeScreenshot] = useScreenshot();
 
   const [isSQLPanelOpen, setSQLPanelOpen] = useState(false);
-  const [generatedSQL, setGeneratedSQL] = useState<{
-    createTableSQL: string;
-    insertDataSQL: string;
-  } | null>(null);
+  const [generatedSQL, setGeneratedSQL] = useState<GeneratedData>(null);
 
   // Load diagram data when component mounts
   useEffect(() => {
