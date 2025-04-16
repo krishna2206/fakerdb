@@ -80,10 +80,10 @@ const DiagramToolbar: React.FC<DiagramToolbarProps> = ({
           <span className="hidden sm:inline ml-1">Add Table</span>
         </Button>
         <Button
-          variant={!hasUnsavedChanges || isSaving ? "ghost" : "default"}
+          variant={isSaving ? "ghost" : hasUnsavedChanges ? "default" : "ghost"}
           size="sm"
           onClick={onSave}
-          disabled={hasUnsavedChanges || isSaving}
+          disabled={!hasUnsavedChanges || isSaving}
           className="h-10 flex items-center"
         >
           {isSaving ? (
