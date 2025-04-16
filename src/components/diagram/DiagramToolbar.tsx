@@ -17,6 +17,7 @@ interface DiagramToolbarProps {
   databaseType: string;
   hasUnsavedChanges: boolean;
   isGenerating: boolean;
+  isSaving: boolean;
   apiKeyMissing?: boolean;
   user?: AuthUser;
   rowCount: number;
@@ -35,6 +36,7 @@ const DiagramToolbar: React.FC<DiagramToolbarProps> = ({
   databaseType,
   hasUnsavedChanges,
   isGenerating,
+  isSaving,
   apiKeyMissing,
   user,
   rowCount,
@@ -79,10 +81,11 @@ const DiagramToolbar: React.FC<DiagramToolbarProps> = ({
           variant={hasUnsavedChanges ? "default" : "ghost"}
           size="sm"
           onClick={onSave}
+          disabled={isSaving}
           className="h-10 flex items-center"
         >
           <Save className="h-4 w-4" />
-          <span className="hidden sm:inline ml-1">Save</span>
+          <span className="hidden sm:inline ml-1">{isSaving ? "Saving..." : "Save"}</span>
         </Button>
         
         <div className="flex items-center gap-2 rounded px-2 bg-background">

@@ -132,6 +132,7 @@ function DiagramEditorContent({
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const reactFlowInstance = useReactFlow();
   const [apiKeyAlertDismissed, setApiKeyAlertDismissed] = useState(false);
   const [, takeScreenshot] = useScreenshot();
@@ -592,6 +593,7 @@ function DiagramEditorContent({
   const saveDiagram = useCallback(async () => {
     try {
       if (project.id) {
+        setIsSaving(true);
         let previewImage = "/placeholder-diagram.svg";
 
         if (nodes.length > 0) {
@@ -632,6 +634,8 @@ function DiagramEditorContent({
         description: "There was a problem saving your diagram",
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   }, [project.id, nodes, edges, toast, reactFlowInstance, takeScreenshot]);
 
@@ -683,6 +687,7 @@ function DiagramEditorContent({
         databaseType={project.databaseType}
         hasUnsavedChanges={hasUnsavedChanges}
         isGenerating={isGenerating}
+        isSaving={isSaving}
         apiKeyMissing={apiKeyMissing}
         user={user}
         rowCount={rowCount}
