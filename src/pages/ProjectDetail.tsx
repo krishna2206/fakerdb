@@ -85,7 +85,8 @@ const ProjectDetail = () => {
 
   const handleGenerateSQL = async (
     nodes: Node[],
-    edges: Edge[]
+    edges: Edge[],
+    rowCount: number = 10
   ): Promise<GeneratedData> => {
     if (!project) return null;
 
@@ -97,7 +98,8 @@ const ProjectDetail = () => {
         project.id,
         project.databaseType,
         nodes,
-        edges
+        edges,
+        rowCount
       );
 
       setGeneratedSQL(sql);
@@ -114,7 +116,7 @@ const ProjectDetail = () => {
       console.error("Error generating SQL:", error);
       toast({
         title: "Generation Failed",
-        description: "Failed to generate SQL. Please check your API key.",
+        description: "An error occured when generating SQL.",
         variant: "destructive",
       });
       return null;

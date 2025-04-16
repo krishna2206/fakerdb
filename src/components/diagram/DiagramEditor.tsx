@@ -5,6 +5,7 @@ import {
   getProjectDiagram,
   saveProjectDiagram,
 } from "@/services/diagramService";
+import { MAX_ROW_COUNT } from "@/services/singleTableService";
 import { GeneratedData, Project, TableField } from "@/types/types";
 import {
   addEdge,
@@ -104,7 +105,8 @@ interface DiagramEditorProps {
   onOpenProjectSettings: () => void;
   onGenerateSQL: (
     nodes: Node[],
-    edges: Edge[]
+    edges: Edge[],
+    rowCount?: number
   ) => Promise<GeneratedData>;
   user?: AuthUser;
   onLogout?: () => void;
@@ -136,6 +138,22 @@ function DiagramEditorContent({
 
   const [isSQLPanelOpen, setSQLPanelOpen] = useState(false);
   const [generatedSQL, setGeneratedSQL] = useState<GeneratedData>(null);
+  const [rowCount, setRowCount] = useState(10);
+
+  const handleRowCountChange = useCallback((value: number) => {
+    // Apply the same MAX_ROW_COUNT limit as in single table mode
+    const safeRowCount = Math.min(value, MAX_ROW_COUNT);
+    
+    if (safeRowCount < value) {
+      toast({
+        title: "Row count limited",
+        description: `Maximum number of rows is limited to ${MAX_ROW_COUNT}`,
+        variant: "warning"
+      });
+    }
+    
+    setRowCount(safeRowCount);
+  }, [toast]);
 
   // Load diagram data when component mounts
   useEffect(() => {
@@ -629,7 +647,8 @@ function DiagramEditorContent({
 
     setIsGenerating(true);
     try {
-      const result = await onGenerateSQL(nodes, edges);
+      // Pass rowCount as an additional parameter
+      const result = await onGenerateSQL(nodes, edges, rowCount);
       if (result && typeof result === "object" && "createTableSQL" in result) {
         setGeneratedSQL(result);
         setSQLPanelOpen(true);
@@ -639,7 +658,7 @@ function DiagramEditorContent({
     } finally {
       setIsGenerating(false);
     }
-  }, [nodes, edges, apiKeyMissing, onGenerateSQL, toast]);
+  }, [nodes, edges, apiKeyMissing, onGenerateSQL, rowCount, toast]);
 
   const toggleSQLPanel = useCallback(() => {
     setSQLPanelOpen((prev) => !prev);
@@ -666,6 +685,8 @@ function DiagramEditorContent({
         isGenerating={isGenerating}
         apiKeyMissing={apiKeyMissing}
         user={user}
+        rowCount={rowCount}
+        onRowCountChange={handleRowCountChange}
         onBack={handleBack}
         onAddTable={addNewTable}
         onSave={saveDiagram}

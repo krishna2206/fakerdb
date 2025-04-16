@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { AuthUser } from "@/hooks/useAuth";
+import { MAX_ROW_COUNT } from "@/services/singleTableService";
 import {
   ArrowLeft, Save,
   Settings,
@@ -16,6 +19,8 @@ interface DiagramToolbarProps {
   isGenerating: boolean;
   apiKeyMissing?: boolean;
   user?: AuthUser;
+  rowCount: number;
+  onRowCountChange: (count: number) => void;
   onBack: () => void;
   onAddTable: () => void;
   onSave: () => void;
@@ -32,6 +37,8 @@ const DiagramToolbar: React.FC<DiagramToolbarProps> = ({
   isGenerating,
   apiKeyMissing,
   user,
+  rowCount,
+  onRowCountChange,
   onBack,
   onAddTable,
   onSave,
@@ -77,6 +84,21 @@ const DiagramToolbar: React.FC<DiagramToolbarProps> = ({
           <Save className="h-4 w-4" />
           <span className="hidden sm:inline ml-1">Save</span>
         </Button>
+        
+        <div className="flex items-center gap-2 rounded px-2 bg-background">
+          <Label htmlFor="row-count" className="text-xs whitespace-nowrap">Rows:</Label>
+          <Input
+            id="row-count"
+            type="number"
+            min="1" 
+            max={MAX_ROW_COUNT}
+            value={rowCount || 10}
+            onChange={(e) => onRowCountChange(parseInt(e.target.value) || 10)}
+            className="w-16 h-10 text-xs border-0"
+            title={`Number of data rows to generate (max: ${MAX_ROW_COUNT})`}
+          />
+        </div>
+        
         <Button
           onClick={onGenerateSQL}
           disabled={isGenerating || apiKeyMissing}

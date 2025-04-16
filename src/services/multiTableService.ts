@@ -12,13 +12,15 @@ import { Edge, Node } from "@xyflow/react";
  * @param databaseType - The database type (MySQL, PostgreSQL, etc.)
  * @param nodes - The diagram nodes representing tables
  * @param edges - The diagram edges representing relationships
+ * @param rowCount - Number of rows to generate per table (default: 10)
  * @returns Promise with a structured result containing createTableSQL and insertDataSQL
  */
 export async function generateMultitableData(
   projectId: string,
   databaseType: string,
   nodes: Node[],
-  edges: Edge[]
+  edges: Edge[],
+  rowCount: number = 10
 ): Promise<GeneratedData> {
   try {
     const project = await getProject(projectId);
@@ -55,7 +57,8 @@ export async function generateMultitableData(
       nodes,
       edges,
       creationOrder,
-      apiKey
+      apiKey,
+      rowCount
     );
   } catch (error) {
     console.error("Error generating SQL from diagram:", error);
@@ -71,6 +74,7 @@ export async function generateMultitableData(
  * @param edges - The diagram edges representing relationships
  * @param creationOrder - The order in which tables should be created based on dependencies
  * @param apiKey - Direct API key string
+ * @param rowCount - Number of rows to generate per table (default: 10)
  * @returns Promise resolving to generated SQL statements and data
  * @throws Error if API request fails or response cannot be parsed
  */
@@ -80,7 +84,8 @@ async function generateDataWithGemini(
   nodes: Node[],
   edges: Edge[],
   creationOrder: string[],
-  apiKey: string
+  apiKey: string,
+  rowCount: number = 10
 ): Promise<GeneratedData> {
   // Generate the prompt using the dedicated function
   const prompt = createMultitablePrompt(
@@ -88,7 +93,8 @@ async function generateDataWithGemini(
     databaseType,
     nodes,
     edges,
-    creationOrder
+    creationOrder,
+    rowCount
   );
 
   const responseSchema = {
@@ -183,6 +189,7 @@ function calculateCreationOrderFromDiagram(
  * @param nodes - The diagram nodes representing tables
  * @param edges - The diagram edges representing relationships
  * @param creationOrder - The order in which tables should be created based on dependencies
+ * @param rowCount - Number of rows to generate per table (default: 10)
  * @returns Formatted prompt string for the AI model
  */
 function createMultitablePrompt(
@@ -190,7 +197,8 @@ function createMultitablePrompt(
   databaseType: string,
   nodes: Node[],
   edges: Edge[],
-  creationOrder: string[]
+  creationOrder: string[],
+  rowCount: number = 10
 ): string {
   let prompt = `Generate database content for a ${databaseType} database based on the following schema:`;
 
@@ -309,11 +317,11 @@ function createMultitablePrompt(
 1. Complete CREATE TABLE statements with proper primary keys, foreign keys, and constraints
 2. Add appropriate indexes for performance
 3. Include proper foreign key relationships between tables
-4. Sample INSERT statements with realistic data for each table (at least 5 rows per table)
+4. Sample INSERT statements with realistic data for each table (exactly ${rowCount} rows per table)
 
 Your response should have two distinct parts:
 - createTableSQL: All CREATE TABLE statements including indexes and constraints
-- insertDataSQL: All INSERT statements with sample data
+- insertDataSQL: All INSERT statements with sample data (${rowCount} rows per table)
 
 Use the specific syntax for ${databaseType} in both sections.`;
 
