@@ -73,6 +73,8 @@ export interface Project {
   userId: string;
   databaseType: DatabaseType;
   geminiApiKey?: string | null;
+  previewImage?: string;
+  tableCount?: number;
   createdAt: string;
   updatedAt: string;
   expanded?: Record<string, unknown>;

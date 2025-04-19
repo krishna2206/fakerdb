@@ -39,6 +39,8 @@ export const fetchProjects = async (
       userId: record.userId,
       databaseType: record.databaseType,
       geminiApiKey: record.geminiApiKey || null,
+      previewImage: record.previewImage || '/placeholder-diagram.svg',
+      tableCount: record.tableCount || 0,
       createdAt: record.created,
       updatedAt: record.updated,
     }));
@@ -70,6 +72,8 @@ export const getProject = async (projectId: string): Promise<Project> => {
       userId: record.userId,
       databaseType: record.databaseType,
       geminiApiKey: record.geminiApiKey || null,
+      previewImage: record.previewImage || '/placeholder-diagram.svg',
+      tableCount: record.tableCount || 0,
       createdAt: record.created,
       updatedAt: record.updated,
     };
@@ -99,6 +103,8 @@ export const createProject = async (projectData: Omit<Project, 'id' | 'createdAt
       userId: userId,
       databaseType: projectData.databaseType,
       geminiApiKey: projectData.geminiApiKey || null,
+      previewImage: projectData.previewImage || '/placeholder-diagram.svg',
+      tableCount: projectData.tableCount || 0,
     };
     
     const record = await pb.collection('projects').create(data);
@@ -110,6 +116,8 @@ export const createProject = async (projectData: Omit<Project, 'id' | 'createdAt
       userId: record.userId,
       databaseType: record.databaseType,
       geminiApiKey: record.geminiApiKey || null,
+      previewImage: record.previewImage || '/placeholder-diagram.svg',
+      tableCount: record.tableCount || 0,
       createdAt: record.created,
       updatedAt: record.updated,
     };
@@ -137,6 +145,8 @@ export const updateProject = async (projectId: string, projectData: Partial<Proj
       userId: record.userId,
       databaseType: record.databaseType,
       geminiApiKey: record.geminiApiKey || null,
+      previewImage: record.previewImage || '/placeholder-diagram.svg',
+      tableCount: record.tableCount || 0,
       createdAt: record.created,
       updatedAt: record.updated,
     };

@@ -87,6 +87,8 @@ const AddProjectModal = ({
         databaseType: data.databaseType,
         geminiApiKey: data.useCustomApiKey ? data.geminiApiKey : null,
         userId: "", // Just specify a blank user id to avoid ESLint error, we get the user id in the project service
+        previewImage: "/placeholder-diagram.svg", // Initialize with the placeholder image
+        tableCount: 0, // Initialize with zero tables
       });
 
       // Reset the form and close the dialog

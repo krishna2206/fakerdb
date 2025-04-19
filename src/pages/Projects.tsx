@@ -18,10 +18,6 @@ import { Input } from "@/components/ui/input";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  getProjectDiagramCounts,
-  getProjectPreviewImages,
-} from "@/services/diagramService";
 import { fetchProjects } from "@/services/projectService";
 import { Project } from "@/types/types";
 import { getTimeAgo } from "@/utils/timeUtils";
@@ -51,9 +47,7 @@ const Projects = () => {
 
   // Data states
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [projects, setProjects] = useState<
-    (Project & { tableCount: number; previewImage?: string })[]
-  >([]);
+  const [projects, setProjects] = useState<Project[]>([]);
 
   // Pagination and search state
   const [currentPage, setCurrentPage] = useState(1);
@@ -71,28 +65,7 @@ const Projects = () => {
 
       setTotalPages(projectsResponse.totalPages);
       setTotalItems(projectsResponse.totalItems);
-
-      if (projectsResponse.items.length > 0) {
-        // Get project IDs
-        const projectIds = projectsResponse.items.map((project) => project.id);
-
-        // Get diagram counts (node counts) for each project
-        const diagramCounts = await getProjectDiagramCounts(projectIds);
-
-        // Get preview images for each project
-        const previewImages = await getProjectPreviewImages(projectIds);
-
-        // Combine projects with their diagram counts (table counts) and preview images
-        const projectsWithData = projectsResponse.items.map((project) => ({
-          ...project,
-          tableCount: diagramCounts[project.id] || 0,
-          previewImage: previewImages[project.id] || "/placeholder-diagram.svg",
-        }));
-
-        setProjects(projectsWithData);
-      } else {
-        setProjects([]);
-      }
+      setProjects(projectsResponse.items);
 
       setIsLoaded(true);
       setIsSearching(false);
@@ -289,7 +262,7 @@ const Projects = () => {
                       <CardContent className="px-4 py-2 flex-grow">
                         <div className="relative h-32 w-full mb-1">
                           <img
-                            src={project.previewImage}
+                            src={project.previewImage || "/placeholder-diagram.svg"}
                             alt={`${project.name} preview`}
                             className="w-full h-full object-cover rounded-md absolute"
                           />
@@ -298,7 +271,7 @@ const Projects = () => {
                       <CardFooter className="px-4 pt-0 pb-3 flex items-center justify-between mt-auto">
                         <span className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Database className="h-3 w-3" />
-                          {project.tableCount}{" "}
+                          {project.tableCount || 0}{" "}
                           {project.tableCount === 1 ? "table" : "tables"}
                         </span>
                         <span className="text-xs text-muted-foreground">
