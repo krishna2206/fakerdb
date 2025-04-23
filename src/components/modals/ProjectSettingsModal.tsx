@@ -19,20 +19,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { deleteProject, updateProject } from "@/services/projectService";
 import { Project } from "@/types/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, Info, Trash2 } from "lucide-react";
+import { AlertCircle, DatabaseIcon, Info, LockIcon, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -109,10 +102,10 @@ const ProjectSettingsModal = ({
 
     try {
       // Only include API key if useCustomApiKey is true
+      // Note: Database type is excluded as it cannot be changed after creation
       const projectData: Partial<Project> = {
         name: data.name,
         description: data.description,
-        databaseType: data.databaseType,
         geminiApiKey: data.useCustomApiKey ? data.geminiApiKey : null,
       };
 
@@ -175,6 +168,11 @@ const ProjectSettingsModal = ({
     setConfirmProjectName("");
   };
 
+  // Helper function to get database icon based on type
+  const getDatabaseIcon = (type: string) => {
+    return <DatabaseIcon className="h-4 w-4 mr-2" />;
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
@@ -220,30 +218,25 @@ const ProjectSettingsModal = ({
                 )}
               />
 
+              {/* Read-only Database Type display */}
               <FormField
                 control={form.control}
                 name="databaseType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Database Type</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select database type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="MySQL">MySQL</SelectItem>
-                        <SelectItem value="PostgreSQL">PostgreSQL</SelectItem>
-                        <SelectItem value="SQLite">SQLite</SelectItem>
-                        <SelectItem value="Oracle">Oracle</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
+                    <div className="flex items-center gap-2">
+                      <FormLabel>Database Type</FormLabel>
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <LockIcon className="h-3 w-3 mr-1" />
+                        <span>Cannot be changed after creation</span>
+                      </div>
+                    </div>
+                    <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+                      <div className="flex items-center gap-2">
+                        {getDatabaseIcon(field.value)}
+                        <span>{field.value}</span>
+                      </div>
+                    </div>
                   </FormItem>
                 )}
               />

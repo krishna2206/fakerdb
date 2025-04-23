@@ -21,7 +21,6 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { DatabaseType, FieldType, TableField } from "@/types/types";
 import {
-  convertFieldType,
   databaseTypes,
   getDefaultLength,
   needsLength,
@@ -37,7 +36,7 @@ import {
   Trash,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 interface TableNodeData {
@@ -77,38 +76,6 @@ export default function TablePropertiesSidebar({
   // Count primary key fields to identify compound keys
   const primaryKeyFields = fields.filter((field) => field.primaryKey);
   const hasCompoundPrimaryKey = primaryKeyFields.length > 1;
-
-  // Convert field types when database type changes, handle potential incompatibilities
-  useEffect(() => {
-    const updatedFields = fields.map(field => {
-      if (!databaseTypes[databaseType].includes(field.type)) {
-        const convertedType = convertFieldType(field.type, databaseType);
-        
-        return {
-          ...field,
-          type: convertedType,
-          length: needsLength(convertedType) ? 
-            field.length || getDefaultLength(convertedType) : 
-            undefined,
-          autoIncrement: supportsAutoIncrement(convertedType) ? 
-            field.autoIncrement : 
-            false
-        };
-      }
-
-      return field;
-    });
-
-    // Only update if something actually changed
-    if (JSON.stringify(updatedFields) !== JSON.stringify(fields)) {
-      setFields(updatedFields);
-      updateNodeData(node.id, {
-        name: tableName,
-        fields: updatedFields,
-        contextDescription,
-      });
-    }
-  }, [databaseType]);
 
   // Identify foreign key fields (fields used in relationships)
   const getForeignKeyInfo = (fieldName: string) => {

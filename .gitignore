@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 pb_data
 .env
+.github/copilot-instructions.md
