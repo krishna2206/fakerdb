@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { TableField } from '@/types/types';
+import { DatabaseType, TableField } from '@/types/types';
 import { Edge, Node } from '@xyflow/react';
 import { Database, X } from 'lucide-react';
 import TablePropertiesSidebar from './TablePropertiesSidebar';
@@ -17,10 +17,18 @@ type DiagramSidebarProps = {
   onClose?: () => void;
   edges?: Edge[];
   nodes?: Node[];
+  databaseType?: DatabaseType;
 };
 
-export default function DiagramSidebar({ node, updateNodeData, removeNode, onClose, edges, nodes }: DiagramSidebarProps) {
-  // If node is selected and we have required props, render the table properties sidebar
+export default function DiagramSidebar({ 
+  node, 
+  updateNodeData, 
+  removeNode, 
+  onClose, 
+  edges, 
+  nodes, 
+  databaseType = "MySQL"
+}: DiagramSidebarProps) {
   if (node && updateNodeData && removeNode) {
     return (
       <TablePropertiesSidebar
@@ -30,6 +38,7 @@ export default function DiagramSidebar({ node, updateNodeData, removeNode, onClo
         onClose={onClose}
         edges={edges}
         nodes={nodes}
+        databaseType={databaseType}
       />
     );
   }

@@ -19,9 +19,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
-import { FieldType, TableField } from "@/types/types";
+import { DatabaseType, FieldType, TableField } from "@/types/types";
 import {
-  fieldTypes,
+  convertFieldType,
+  databaseTypes,
   getDefaultLength,
   needsLength,
   supportsAutoIncrement,
@@ -36,11 +37,8 @@ import {
   Trash,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-
-// SQL types based on popular database engines
-const SQL_TYPES = fieldTypes;
 
 interface TableNodeData {
   name: string;
@@ -55,6 +53,7 @@ export interface TablePropertiesProps {
   onClose?: () => void;
   edges?: Edge[]; // Add edges to identify foreign key relationships
   nodes?: Node[]; // Add nodes to get table names for relationship info
+  databaseType?: DatabaseType;
 }
 
 export default function TablePropertiesSidebar({
@@ -64,6 +63,7 @@ export default function TablePropertiesSidebar({
   onClose,
   edges = [],
   nodes = [],
+  databaseType = "MySQL",
 }: TablePropertiesProps) {
   const [tableName, setTableName] = useState((node.data.name as string) || "");
   const [fields, setFields] = useState<TableField[]>(
@@ -77,6 +77,38 @@ export default function TablePropertiesSidebar({
   // Count primary key fields to identify compound keys
   const primaryKeyFields = fields.filter((field) => field.primaryKey);
   const hasCompoundPrimaryKey = primaryKeyFields.length > 1;
+
+  // Convert field types when database type changes, handle potential incompatibilities
+  useEffect(() => {
+    const updatedFields = fields.map(field => {
+      if (!databaseTypes[databaseType].includes(field.type)) {
+        const convertedType = convertFieldType(field.type, databaseType);
+        
+        return {
+          ...field,
+          type: convertedType,
+          length: needsLength(convertedType) ? 
+            field.length || getDefaultLength(convertedType) : 
+            undefined,
+          autoIncrement: supportsAutoIncrement(convertedType) ? 
+            field.autoIncrement : 
+            false
+        };
+      }
+
+      return field;
+    });
+
+    // Only update if something actually changed
+    if (JSON.stringify(updatedFields) !== JSON.stringify(fields)) {
+      setFields(updatedFields);
+      updateNodeData(node.id, {
+        name: tableName,
+        fields: updatedFields,
+        contextDescription,
+      });
+    }
+  }, [databaseType]);
 
   // Identify foreign key fields (fields used in relationships)
   const getForeignKeyInfo = (fieldName: string) => {
@@ -149,15 +181,22 @@ export default function TablePropertiesSidebar({
   };
 
   const addField = () => {
+    // Choose a database-compatible field type for the new field
+    const defaultType = databaseTypes[databaseType].includes("VARCHAR") 
+      ? "VARCHAR" 
+      : databaseTypes[databaseType].includes("TEXT") 
+        ? "TEXT" 
+        : databaseTypes[databaseType][0]; // First available type as fallback
+        
     const newFields = [
       ...fields,
       {
         id: uuidv4(),
         name: `field_${fields.length + 1}`,
-        type: "VARCHAR" as FieldType,
+        type: defaultType as FieldType,
         primaryKey: false,
         nullable: true,
-        length: 255,
+        length: needsLength(defaultType) ? getDefaultLength(defaultType) : undefined,
         contextHint: "",
         autoIncrement: false,
         description: "",
@@ -393,7 +432,7 @@ export default function TablePropertiesSidebar({
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      {SQL_TYPES.map((type) => (
+                      {databaseTypes[databaseType].map((type) => (
                         <SelectItem key={type} value={type}>
                           {type}
                         </SelectItem>

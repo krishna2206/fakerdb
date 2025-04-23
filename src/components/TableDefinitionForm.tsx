@@ -21,13 +21,17 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MAX_ROW_COUNT } from '@/services/singleTableService';
-import { DatabaseType, TableDefinition, TableField } from '@/types/types';
-import { fieldTypes, getDefaultLength, needsLength, supportsAutoIncrement } from '@/utils/fieldTypes';
+import { DatabaseType, FieldType, TableDefinition, TableField } from '@/types/types';
+import {
+  convertFieldType,
+  databaseTypes,
+  getDefaultLength,
+  needsLength,
+  supportsAutoIncrement
+} from '@/utils/fieldTypes';
 import { AlertCircle, HelpCircle, Lightbulb, Loader2, Plus, Sparkles, Trash2 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-
-type FieldType = typeof fieldTypes[number];
 
 interface TableDefinitionFormProps {
   onSubmit: (tableDefinition: TableDefinition, rowCount: number) => void;
@@ -54,6 +58,32 @@ const TableDefinitionForm: React.FC<TableDefinitionFormProps> = ({ onSubmit, isL
   // Count primary key fields to identify compound keys
   const primaryKeyFields = fields.filter(field => field.primaryKey);
   const hasCompoundPrimaryKey = primaryKeyFields.length > 1;
+
+  // Convert field types when database type changes, handle potential incompatibilities
+  useEffect(() => {
+    const updatedFields = fields.map(field => {
+      const convertedType = convertFieldType(field.type, databaseType);
+      
+      if (convertedType !== field.type) {
+        const updatedField = {
+          ...field,
+          type: convertedType,
+          length: needsLength(convertedType) ? 
+            field.length || getDefaultLength(convertedType) : 
+            undefined,
+          autoIncrement: supportsAutoIncrement(convertedType) ? 
+            field.autoIncrement : 
+            false
+        };
+
+        return updatedField;
+      }
+      
+      return field;
+    });
+
+    setFields(updatedFields);
+  }, [databaseType]);
 
   const handleAddField = () => {
     setFields([...fields, {
@@ -104,6 +134,10 @@ const TableDefinitionForm: React.FC<TableDefinitionFormProps> = ({ onSubmit, isL
     }
   };
 
+  const handleDatabaseTypeChange = (value: DatabaseType) => {
+    setDatabaseType(value);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const tableDefinition: TableDefinition = {
@@ -139,7 +173,7 @@ const TableDefinitionForm: React.FC<TableDefinitionFormProps> = ({ onSubmit, isL
                 <Label htmlFor="databaseType">Database Type</Label>
                 <Select
                   value={databaseType}
-                  onValueChange={(value: DatabaseType) => setDatabaseType(value)}
+                  onValueChange={handleDatabaseTypeChange}
                 >
                   <SelectTrigger id="databaseType">
                     <SelectValue placeholder="Select database" />
@@ -247,7 +281,7 @@ const TableDefinitionForm: React.FC<TableDefinitionFormProps> = ({ onSubmit, isL
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                         <SelectContent>
-                          {fieldTypes.map(type => (
+                          {databaseTypes[databaseType].map(type => (
                             <SelectItem key={type} value={type}>
                               {type}
                             </SelectItem>

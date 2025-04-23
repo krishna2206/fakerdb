@@ -792,6 +792,7 @@ function DiagramEditorContent({
                   onClose={closeSidebar}
                   edges={edges}
                   nodes={nodes}
+                  databaseType={project.databaseType}
                 />
               )}
 
@@ -805,7 +806,10 @@ function DiagramEditorContent({
               )}
 
               {!selectedNode && !selectedEdge && (
-                <DiagramSidebar onClose={closeSidebar} />
+                <DiagramSidebar 
+                  onClose={closeSidebar}
+                  databaseType={project.databaseType}
+                />
               )}
             </motion.div>
           )}
