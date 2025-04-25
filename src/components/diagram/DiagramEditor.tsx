@@ -48,55 +48,21 @@ const edgeTypes: EdgeTypes = {
   relationshipEdge: RelationshipEdge,
 };
 
-// Create a sample initial node for new projects
-const createInitialNode = () => ({
-  id: "users",
-  type: "tableNode",
-  data: {
-    name: "users",
-    fields: [
-      {
-        id: crypto.randomUUID(),
-        name: "id",
-        type: "INT",
-        primaryKey: true,
-        nullable: false,
-        autoIncrement: true,
-        description: "Primary key",
-      },
-      {
-        id: crypto.randomUUID(),
-        name: "username",
-        type: "VARCHAR",
-        length: 100,
-        primaryKey: false,
-        nullable: false,
-        autoIncrement: false,
-        description: "Unique username",
-      },
-      {
-        id: crypto.randomUUID(),
-        name: "email",
-        type: "VARCHAR",
-        length: 255,
-        primaryKey: false,
-        nullable: false,
-        autoIncrement: false,
-        description: "User email address",
-      },
-      {
-        id: crypto.randomUUID(),
-        name: "created_at",
-        type: "TIMESTAMP",
-        primaryKey: false,
-        nullable: true,
-        autoIncrement: false,
-        description: "Creation timestamp",
-      },
-    ],
-  },
-  position: { x: 250, y: 100 },
-});
+const EmptyDiagramMessage = () => (
+  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-4 p-6 max-w-md text-center z-10">
+    <div className="bg-muted/70 border border-border rounded-xl px-6 py-8 shadow-sm backdrop-blur-sm">
+      <div className="flex items-center justify-center mb-4">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-bounce text-primary">
+          <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+      </div>
+      <h3 className="text-lg font-medium mb-2">Your diagram is empty</h3>
+      <p className="text-muted-foreground">
+        Click the "Add Table" button in the toolbar to start designing your database
+      </p>
+    </div>
+  </div>
+);
 
 interface DiagramEditorProps {
   project: Project;
@@ -171,17 +137,15 @@ function DiagramEditorContent({
             setNodes(diagramData.nodes);
             setEdges(diagramData.edges || []);
           } else {
-            // If no saved diagram, create a default one
-            const defaultNodes = [createInitialNode()];
-            setNodes(defaultNodes);
+            // If no saved diagram, set empty state
+            setNodes([]);
             setEdges([]);
           }
         }
       } catch (error) {
         console.error("Error loading diagram:", error);
-        // Set default node
-        const defaultNodes = [createInitialNode()];
-        setNodes(defaultNodes);
+        // Set empty state
+        setNodes([]);
       }
     };
 
@@ -742,6 +706,9 @@ function DiagramEditorContent({
               edit
             </Panel>
           </ReactFlow>
+
+          {/* Empty diagram message */}
+          {nodes.length === 0 && <EmptyDiagramMessage />}
 
           {/* Sidebar toggle button */}
           <Button
