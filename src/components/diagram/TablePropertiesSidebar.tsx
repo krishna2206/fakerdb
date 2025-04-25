@@ -1,3 +1,13 @@
+import { Edge, Node } from "@xyflow/react";
+import {
+  AlertCircle,
+  HelpCircle, Lightbulb, Plus,
+  Trash,
+  X
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
+
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -19,25 +29,24 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
-import { DatabaseType, FieldType, TableField } from "@/types/types";
+
+import { TemplateBadge } from "@/components/badges/TemplateBadge";
+import { TemplateSelector } from "@/components/templates/TemplateSelector";
 import {
+  CompoundPrimaryKeyBadge,
+  ForeignKeyBadge,
+  PrimaryKeyBadge,
+  ReferencedKeyBadge
+} from "../badges/KeyBadges";
+
+import { DatabaseType, FieldType, TableField, TemplateData, TemplateVariation } from "@/types/types";
+import {
+  convertFieldType,
   databaseTypes,
   getDefaultLength,
   needsLength,
   supportsAutoIncrement,
-} from "@/utils/fieldTypes";
-import { Edge, Node } from "@xyflow/react";
-import {
-  AlertCircle,
-  HelpCircle,
-  Lightbulb,
-  Link,
-  Plus,
-  Trash,
-  X,
-} from "lucide-react";
-import { useState } from "react";
-import { v4 as uuidv4 } from "uuid";
+} from "@/utils/fieldTypesUtils";
 
 interface TableNodeData {
   name: string;
@@ -73,11 +82,11 @@ export default function TablePropertiesSidebar({
   );
   const { toast } = useToast();
 
-  // Count primary key fields to identify compound keys
   const primaryKeyFields = fields.filter((field) => field.primaryKey);
   const hasCompoundPrimaryKey = primaryKeyFields.length > 1;
 
-  // Identify foreign key fields (fields used in relationships)
+  const hasTemplate = (field: TableField) => Boolean(field.template);
+
   const getForeignKeyInfo = (fieldName: string) => {
     // Find edges where this node and field are the target (receiving end of relationship)
     const foreignKeyEdges = edges.filter((edge) => {
@@ -180,6 +189,24 @@ export default function TablePropertiesSidebar({
   const updateField = (index: number, updatedField: Partial<TableField>) => {
     const newFields = [...fields];
     const currentField = newFields[index];
+    
+    // Check if we're updating a field that's becoming part of a relationship
+    const wasRelational = getForeignKeyInfo(currentField.name).isRelational;
+    const willBeRelational = updatedField.name ? getForeignKeyInfo(updatedField.name).isRelational : wasRelational;
+
+    // Only clear context hint and templates if becoming a foreign key relationship (but NOT a primary key)
+    if (!wasRelational && willBeRelational && currentField.contextHint) {
+      // Only clear if this is an actual foreign key relationship
+      const isForeignKey = updatedField.name 
+        ? getForeignKeyInfo(updatedField.name).isForeignKey 
+        : getForeignKeyInfo(currentField.name).isForeignKey;
+        
+      if (isForeignKey) {
+        updatedField.contextHint = "";
+        updatedField.template = undefined;
+        updatedField.templateVariation = undefined;
+      }
+    }
 
     // Create updated field with proper typing
     newFields[index] = { ...currentField, ...updatedField };
@@ -245,6 +272,67 @@ export default function TablePropertiesSidebar({
       contextDescription,
     });
   };
+
+  const handleApplyTemplate = (index: number, template: TemplateData, variation?: TemplateVariation) => {
+    const field = fields[index];
+    if (field) {
+      // Convert template field type to match the current database type
+      const dbCompatibleFieldType = convertFieldType(template.fieldType, databaseType);
+      
+      // Set updated field with template information
+      const updatedField: Partial<TableField> = {
+        type: dbCompatibleFieldType,
+        length: template.defaultLength || (needsLength(dbCompatibleFieldType) ? getDefaultLength(dbCompatibleFieldType) : undefined),
+        contextHint: variation?.contextHint || template.variations[0]?.contextHint || field.contextHint,
+        template: template,
+        templateVariation: variation || template.variations[0]
+      };
+      
+      updateField(index, updatedField);
+    }
+  };
+
+  const handleRemoveTemplate = (index: number) => {
+    const field = fields[index];
+    if (field && field.template) {
+      // Keep the context hint that was set by the template
+      const { template, templateVariation, ...rest } = field;
+      updateField(index, { template: undefined, templateVariation: undefined });
+    }
+  };
+
+  // Effect to clear context hints when fields become part of a relationship due to diagram changes
+  useEffect(() => {
+    const updatedFields = [...fields];
+    let hasChanges = false;
+
+    // Check each field to see if it's become relational and has a context hint
+    fields.forEach((field, index) => {
+      // Get relationship info and specifically check if it's a foreign key (not just a primary key)
+      const keyInfo = getForeignKeyInfo(field.name);
+      
+      // Only clear templates and context hints for foreign keys, not for primary keys or fields referenced by other tables
+      if (keyInfo.isForeignKey && (field.contextHint || field.template)) {
+        updatedFields[index] = {
+          ...field,
+          contextHint: "",
+          template: undefined,
+          templateVariation: undefined
+        };
+        hasChanges = true;
+      }
+    });
+
+    // Only update the node data if changes were made
+    if (hasChanges) {
+      setFields(updatedFields);
+      updateNodeData(node.id, {
+        name: tableName,
+        fields: updatedFields,
+        contextDescription,
+      });
+    }
+  }, [edges]);
 
   return (
     <div className="w-96 border-l bg-background overflow-y-auto h-full">
@@ -330,39 +418,65 @@ export default function TablePropertiesSidebar({
                   : ""
               }`}
             >
-              {/* Primary key indicator */}
-              {field.primaryKey && (
-                <div className="inline-block px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary mb-2">
-                  {hasCompoundPrimaryKey
-                    ? "Part of compound primary key"
-                    : "Primary key"}
-                </div>
-              )}
+              {/* Field badges section */}
+              <div className="flex flex-wrap gap-2 items-center">
+                {/* Primary key indicator */}
+                {field.primaryKey && (
+                  hasCompoundPrimaryKey ? (
+                    <CompoundPrimaryKeyBadge keyCount={primaryKeyFields.length} />
+                  ) : (
+                    <PrimaryKeyBadge />
+                  )
+                )}
 
-              {/* Foreign key indicator */}
-              {keyInfo.isRelational && !field.primaryKey && (
-                <div className="flex px-2 py-1 rounded-md text-xs font-medium bg-blue-400/10 text-blue-500 mb-2 items-center">
-                  <Link className="h-3 w-3 mr-1" />
-                  {keyInfo.isForeignKey
-                    ? "Foreign key"
-                    : "Referenced by other table"}
+                {/* Foreign key indicator */}
+                {keyInfo.isRelational && !field.primaryKey && (
+                  keyInfo.isForeignKey ? (
+                    <ForeignKeyBadge 
+                      tooltipContent={
+                        <>
+                          {keyInfo.relationships.map((rel, i) => (
+                            <p key={i} className="text-xs mb-1">
+                              {`References ${rel.tableName}.${rel.fieldName} (${rel.relationshipType})`}
+                            </p>
+                          ))}
+                        </>
+                      }
+                    />
+                  ) : (
+                    <ReferencedKeyBadge 
+                      tooltipContent={
+                        <>
+                          {keyInfo.relationships.map((rel, i) => (
+                            <p key={i} className="text-xs mb-1">
+                              {`Referenced by ${rel.tableName}.${rel.fieldName} (${rel.relationshipType})`}
+                            </p>
+                          ))}
+                        </>
+                      }
+                    />
+                  )
+                )}
+                
+                {/* Template badge */}
+                {hasTemplate(field) && field.template && field.templateVariation && (
+                  <TemplateBadge
+                    template={field.template}
+                    variation={field.templateVariation}
+                    onRemove={() => handleRemoveTemplate(index)}
+                  />
+                )}
+              </div>
 
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="h-3.5 w-3.5 ml-1 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="w-80">
-                        {keyInfo.relationships.map((rel, i) => (
-                          <p key={i} className="text-xs mb-1">
-                            {rel.type === "foreignKey"
-                              ? `References ${rel.tableName}.${rel.fieldName} (${rel.relationshipType})`
-                              : `Referenced by ${rel.tableName}.${rel.fieldName} (${rel.relationshipType})`}
-                          </p>
-                        ))}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+              {/* Template selector - only shown for non-relational fields */}
+              {!keyInfo.isRelational && (
+                <div className="w-full">
+                  <TemplateSelector
+                    onSelectTemplate={(template, variation) =>
+                      handleApplyTemplate(index, template, variation)
+                    }
+                    className="w-full"
+                  />
                 </div>
               )}
 
@@ -393,9 +507,9 @@ export default function TablePropertiesSidebar({
                     onValueChange={(value: FieldType) =>
                       handleTypeChange(index, value)
                     }
-                    disabled={keyInfo.isRelational}
+                    disabled={keyInfo.isRelational || hasTemplate(field)}
                   >
-                    <SelectTrigger className="mt-1">
+                    <SelectTrigger className={`mt-1 ${hasTemplate(field) ? "opacity-60" : ""}`}>
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -419,14 +533,15 @@ export default function TablePropertiesSidebar({
                       onChange={(e) =>
                         updateField(index, { length: Number(e.target.value) })
                       }
-                      className="mt-1"
-                      disabled={keyInfo.isRelational}
+                      className={`mt-1 ${hasTemplate(field) ? "opacity-60" : ""}`}
+                      disabled={keyInfo.isRelational || hasTemplate(field)}
                       required
                     />
                   </div>
                 )}
               </div>
 
+              {/* Context hint for AI generation */}
               <div>
                 <Label className="text-xs">Context Hint (Optional)</Label>
                 <Input
@@ -434,9 +549,20 @@ export default function TablePropertiesSidebar({
                   onChange={(e) =>
                     updateField(index, { contextHint: e.target.value })
                   }
-                  placeholder="Hint for AI data generation (e.g. 'US state names')"
-                  className="mt-1"
+                  placeholder="Additional context to guide AI data generation for this field"
+                  className={`mt-1 ${hasTemplate(field) || keyInfo.isRelational ? "opacity-60" : ""}`}
+                  disabled={hasTemplate(field) || keyInfo.isRelational}
                 />
+                {hasTemplate(field) && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    This field is using a template. The context hint is set by the template.
+                  </p>
+                )}
+                {keyInfo.isRelational && !hasTemplate(field) && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Context hints are not applicable to relationship fields. Values must match the referenced table.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -480,7 +606,7 @@ export default function TablePropertiesSidebar({
                   </Label>
                 </div>
 
-                {/* Add Unique constraint checkbox */}
+                {/* Unique constraint checkbox */}
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id={`unique-${index}`}
@@ -523,7 +649,7 @@ export default function TablePropertiesSidebar({
                   </Label>
                 </div>
 
-                {/* Only show auto-increment for supported field types */}
+                {/* Auto-increment option - only shown for supported field types */}
                 {supportsAutoIncrement(field.type) && (
                   <div className="flex items-center space-x-2">
                     <Checkbox
@@ -584,10 +710,9 @@ export default function TablePropertiesSidebar({
                 </div>
               </div>
 
-              {/* Add explanation for disabled state when it's a relational field */}
               {keyInfo.isRelational && (
                 <div className="flex items-center gap-2 mt-2 text-amber-500 text-xs">
-                  <AlertCircle className="h-3.5 w-3.5" />
+                  <AlertCircle className="h-8 w-8" />
                   <span>
                     This field is part of a relationship and cannot be modified.
                     Remove the relationship first to make changes.
@@ -598,7 +723,6 @@ export default function TablePropertiesSidebar({
           );
         })}
 
-        {/* Add Field button moved to bottom */}
         <Button
           variant="outline"
           size="sm"

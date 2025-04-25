@@ -1,3 +1,5 @@
+import { TemplateBadge } from '@/components/badges/TemplateBadge';
+import { TemplateSelector } from '@/components/templates/TemplateSelector';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -21,17 +23,18 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MAX_ROW_COUNT } from '@/services/singleTableService';
-import { DatabaseType, FieldType, TableDefinition, TableField } from '@/types/types';
+import { DatabaseType, FieldType, TableDefinition, TableField, TemplateData, TemplateVariation } from '@/types/types';
 import {
   convertFieldType,
   databaseTypes,
   getDefaultLength,
   needsLength,
   supportsAutoIncrement
-} from '@/utils/fieldTypes';
+} from '@/utils/fieldTypesUtils';
 import { AlertCircle, HelpCircle, Lightbulb, Loader2, Plus, Sparkles, Trash2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { CompoundPrimaryKeyBadge, PrimaryKeyBadge } from "./badges/KeyBadges";
 
 interface TableDefinitionFormProps {
   onSubmit: (tableDefinition: TableDefinition, rowCount: number) => void;
@@ -149,6 +152,39 @@ const TableDefinitionForm: React.FC<TableDefinitionFormProps> = ({ onSubmit, isL
     onSubmit(tableDefinition, rowCount);
   };
 
+  const handleApplyTemplate = (fieldId: string, template: TemplateData, variation?: TemplateVariation) => {
+    setFields(fields.map(field => {
+      if (field.id === fieldId) {
+        // Convert template field type to match the current database type
+        const dbCompatibleFieldType = convertFieldType(template.fieldType, databaseType);
+        
+        return {
+          ...field,
+          type: dbCompatibleFieldType,
+          length: template.defaultLength || (needsLength(dbCompatibleFieldType) ? getDefaultLength(dbCompatibleFieldType) : undefined),
+          contextHint: variation?.contextHint || template.variations[0]?.contextHint || field.contextHint,
+          template: template,
+          templateVariation: variation || template.variations[0]
+        };
+      }
+      return field;
+    }));
+  };
+
+  const handleRemoveTemplate = (fieldId: string) => {
+    setFields(fields.map(field => {
+      if (field.id === fieldId) {
+        // Keep the context hint that was set by the template
+        const { template, templateVariation, ...rest } = field;
+        return rest;
+      }
+      return field;
+    }));
+  };
+
+  // Check if field has a template applied
+  const hasTemplate = (field: TableField) => Boolean(field.template);
+
   return (
     <Card>
       <CardHeader>
@@ -251,14 +287,36 @@ const TableDefinitionForm: React.FC<TableDefinitionFormProps> = ({ onSubmit, isL
               {fields.map((field, index) => (
                 <div 
                   key={field.id} 
-                  className={`rounded-lg border p-4 space-y-4 ${field.primaryKey ? 'border-primary border-2' : ''}`}
+                  className={`rounded-lg border p-4 space-y-4 relative ${field.primaryKey ? 'border-primary border-2' : ''}`}
                 >
-                  {/* Compound primary key indicator */}
-                  {field.primaryKey && hasCompoundPrimaryKey && (
-                    <div className="inline-block px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary mb-2">
-                      Part of compound primary key
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2 flex-1">
+                      <TemplateSelector 
+                        onSelectTemplate={(template, variation) => 
+                          handleApplyTemplate(field.id, template, variation)
+                        }
+                        className="w-2/5"
+                      />
                     </div>
-                  )}
+                    
+                    <div className="flex flex-row gap-2">
+                      {field.primaryKey && (
+                        hasCompoundPrimaryKey ? (
+                          <CompoundPrimaryKeyBadge keyCount={primaryKeyFields.length} />
+                        ) : (
+                          <PrimaryKeyBadge />
+                        )
+                      )}
+                      
+                      {hasTemplate(field) && field.template && field.templateVariation && (
+                        <TemplateBadge
+                          template={field.template}
+                          variation={field.templateVariation}
+                          onRemove={() => handleRemoveTemplate(field.id)}
+                        />
+                      )}
+                    </div>
+                  </div>
                   
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div className="space-y-2">
@@ -276,8 +334,11 @@ const TableDefinitionForm: React.FC<TableDefinitionFormProps> = ({ onSubmit, isL
                       <Select
                         value={field.type}
                         onValueChange={(value: FieldType) => handleTypeChange(field.id, value)}
+                        disabled={hasTemplate(field)}
                       >
-                        <SelectTrigger id={`field-type-${field.id}`}>
+                        <SelectTrigger id={`field-type-${field.id}`} 
+                          className={hasTemplate(field) ? "opacity-60" : ""}
+                        >
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -300,11 +361,13 @@ const TableDefinitionForm: React.FC<TableDefinitionFormProps> = ({ onSubmit, isL
                           value={field.length || getDefaultLength(field.type)}
                           onChange={e => handleFieldChange(field.id, { length: Number(e.target.value) })}
                           required
+                          disabled={hasTemplate(field)}
+                          className={hasTemplate(field) ? "opacity-60" : ""}
                         />
                       </div>
                     )}
                     
-                    <div className="col-span-2 space-y-2">
+                    <div className={`${needsLength(field.type) ? "col-span-2" : "col-span-3"} space-y-2`}>
                       <Label htmlFor={`field-desc-${field.id}`}>Description</Label>
                       <Input
                         id={`field-desc-${field.id}`}
@@ -314,7 +377,7 @@ const TableDefinitionForm: React.FC<TableDefinitionFormProps> = ({ onSubmit, isL
                       />
                     </div>
                   </div>
-                  
+
                   {/* Field Context Hint */}
                   <div className="space-y-2">
                     <Label htmlFor={`field-context-${field.id}`}>
@@ -325,7 +388,14 @@ const TableDefinitionForm: React.FC<TableDefinitionFormProps> = ({ onSubmit, isL
                       value={field.contextHint || ''}
                       onChange={e => handleFieldChange(field.id, { contextHint: e.target.value })}
                       placeholder="Additional context to guide AI data generation for this field"
+                      disabled={hasTemplate(field)}
+                      className={hasTemplate(field) ? "opacity-60" : ""}
                     />
+                    {hasTemplate(field) && (
+                      <p className="text-xs text-muted-foreground">
+                        This field is using a template. The context hint is set by the template.
+                      </p>
+                    )}
                   </div>
                   
                   <div className="grid grid-cols-3 gap-4">

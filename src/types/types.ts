@@ -1,3 +1,44 @@
+// Template categories
+export type TemplateCategory = 
+  | "Human Data" 
+  | "Location Data" 
+  | "Business Data" 
+  | "Financial Data"
+  | "Internet Data";
+
+// Template variation types
+export type TemplateVariationType = 
+  | "Country" 
+  | "Provider"
+  | "Format" 
+  | "Source" 
+  | "Age Range" 
+  | "Gender"
+  | "Style"
+  | "Field"
+  | "Default"
+
+// Template data structure
+export interface TemplateData {
+  id: string;
+  name: string;
+  category: TemplateCategory;
+  description: string;
+  fieldType: FieldType;
+  defaultLength?: number;
+  variations: TemplateVariation[];
+}
+
+// Template variation structure
+export interface TemplateVariation {
+  id: string;
+  name: string;
+  type: TemplateVariationType;
+  description: string;
+  contextHint: string;
+  exampleValues: string[];
+}
+
 export type FieldType =
   | "INT"
   | "INTEGER"
@@ -50,6 +91,8 @@ export interface TableField {
   nullable: boolean;
   description: string;
   contextHint?: string;
+  template?: TemplateData;
+  templateVariation?: TemplateVariation;
 }
 
 export interface TableDefinition {

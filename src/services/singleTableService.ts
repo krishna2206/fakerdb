@@ -153,6 +153,15 @@ function createSingletablePrompt(
       if (!field.nullable) desc += " NOT NULL";
       if (field.description) desc += ` - ${field.description}`;
 
+      // Add template information if available
+      if (field.template && field.templateVariation) {
+        desc += `\n  Template: ${field.template.name}${field.templateVariation.name !== "Default" ? ` (${field.templateVariation.name})` : ""}`;
+        desc += `\n  Template Description: ${field.templateVariation.description}`;
+        if (field.templateVariation.exampleValues && field.templateVariation.exampleValues.length > 0) {
+          desc += `\n  Examples: ${field.templateVariation.exampleValues.join(", ")}`;
+        }
+      }
+      
       // Add context hint if available
       if (field.contextHint) {
         desc += `\n  Context: ${field.contextHint}`;
@@ -168,6 +177,22 @@ ${fieldsDescription}`;
   // Add table context if available
   if (tableDefinition.contextDescription) {
     prompt += `\n\nAdditional context about the table:\n${tableDefinition.contextDescription}`;
+  }
+
+  // Add template guidance to help with data generation
+  const templatedFields = tableDefinition.fields.filter(field => field.template && field.templateVariation);
+  if (templatedFields.length > 0) {
+    prompt += `\n\nSome fields are using predefined templates. Pay special attention to these fields and generate data that strictly follows the template specifications:`;
+    
+    templatedFields.forEach(field => {
+      if (field.template && field.templateVariation) {
+        prompt += `\n- For field '${field.name}': Generate ${field.template.name} data `;
+        if (field.templateVariation.name !== "Default") {
+          prompt += `in the '${field.templateVariation.name}' format. `;
+        }
+        prompt += `Follow exactly this context hint: "${field.templateVariation.contextHint}"`;
+      }
+    });
   }
 
   // Add database-specific syntax guidance

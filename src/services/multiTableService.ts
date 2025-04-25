@@ -2,7 +2,7 @@ import { generateText } from "@/lib/geminiClient";
 import { getProject } from "@/services/projectService";
 import { GeneratedData, Project, TableField } from "@/types/types";
 import { getApiKey } from "@/utils/apiKeyUtils";
-import { needsLength } from "@/utils/fieldTypes";
+import { needsLength } from "@/utils/fieldTypesUtils";
 import { Edge, Node } from "@xyflow/react";
 
 /**
@@ -236,8 +236,18 @@ function createMultitablePrompt(
       if (!field.nullable) fieldDesc += " NOT NULL";
       if (field.unique && !field.primaryKey) fieldDesc += " UNIQUE";
 
+      // Add template information if available
+      if (field.template && field.templateVariation) {
+        fieldDesc += `\n  Template: ${field.template.name}${field.templateVariation.name !== "Default" ? ` (${field.templateVariation.name})` : ""}`;
+        fieldDesc += `\n  Template Description: ${field.templateVariation.description}`;
+        if (field.templateVariation.exampleValues && field.templateVariation.exampleValues.length > 0) {
+          fieldDesc += `\n  Examples: ${field.templateVariation.exampleValues.join(", ")}`;
+        }
+      }
+      
+      // Add context hint if available
       if (field.contextHint) {
-        fieldDesc += ` - ${field.contextHint}`;
+        fieldDesc += `\n  Context: ${field.contextHint}`;
       }
 
       prompt += fieldDesc;
