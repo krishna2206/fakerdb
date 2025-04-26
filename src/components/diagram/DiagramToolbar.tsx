@@ -31,6 +31,7 @@ interface DiagramToolbarProps {
   onOpenProjectSettings: () => void;
   onOpenSettings: () => void;
   onLogout?: () => void;
+  nodesCount?: number;
 }
 
 const DiagramToolbar: React.FC<DiagramToolbarProps> = ({
@@ -50,6 +51,7 @@ const DiagramToolbar: React.FC<DiagramToolbarProps> = ({
   onOpenProjectSettings,
   onOpenSettings,
   onLogout,
+  nodesCount = 0,
 }) => {
   return (
     <div className="border-b border-border py-2 px-4 flex justify-between items-center bg-card h-16">
@@ -114,9 +116,10 @@ const DiagramToolbar: React.FC<DiagramToolbarProps> = ({
 
         <Button
           onClick={onGenerateSQL}
-          disabled={isGenerating || apiKeyMissing}
+          disabled={isGenerating || apiKeyMissing || nodesCount === 0}
           size="sm"
           className="h-10 flex items-center"
+          title={nodesCount === 0 ? "Add tables to generate SQL" : "Generate SQL statements"}
         >
           <Sparkles className="h-4 w-4" />
           <span className="hidden sm:inline ml-1">Generate SQL</span>

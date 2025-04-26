@@ -663,6 +663,7 @@ function DiagramEditorContent({
         onOpenProjectSettings={onOpenProjectSettings}
         onOpenSettings={onOpenSettings}
         onLogout={onLogout}
+        nodesCount={nodes.length}
       />
 
       {/* React Flow */}
