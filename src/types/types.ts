@@ -1,10 +1,17 @@
 // Template categories
 export type TemplateCategory = 
-  | "Human Data" 
-  | "Location Data" 
-  | "Business Data" 
-  | "Financial Data"
-  | "Internet Data";
+  | "Person" 
+  | "Date" 
+  | "Internet"
+  | "Phone"
+  | "Animal"
+  | "Book"
+  | "Commerce"
+  | "Finance"
+  | "Food"
+  | "Location"
+  | "Lorem"
+  | "Vehicle";
 
 // Template variation types
 export type TemplateVariationType = 
@@ -17,6 +24,26 @@ export type TemplateVariationType =
   | "Style"
   | "Field"
   | "Default"
+  | "Category"
+  | "Protocol"
+  | "Strength"
+  | "Extended"
+  | "Browser"
+  | "Device"
+  | "Genre"
+  | "Currency"
+  | "Range"
+  | "Quality"
+  | "Region"
+  | "Length"
+  | "Quantity"
+  | "Brand"
+  | "Type"
+  | "Model"
+  | "Color"
+  | "Manufacturer"
+  | "VIN"
+  | "Fuel";
 
 // Template data structure
 export interface TemplateData {

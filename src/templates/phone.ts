@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 export const phoneNumberTemplate: TemplateData = {
   id: uuidv4(),
   name: "Phone Number",
-  category: "Human Data",
+  category: "Phone",
   description: "A phone number in various formats",
   fieldType: "VARCHAR",
   defaultLength: 20,

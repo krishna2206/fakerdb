@@ -3,7 +3,7 @@ import { TemplateData } from "@/types/types";
 export const dateRangeTemplate: TemplateData = {
   id: "date-range-template", 
   name: "Date Range",
-  category: "Business Data",
+  category: "Date",
   description: "Custom date range for generating dates between two points",
   fieldType: "DATE",
   variations: [

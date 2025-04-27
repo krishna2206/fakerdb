@@ -3,7 +3,7 @@ import {
   TemplateData,
   TemplateVariation,
 } from "@/types/types";
-import { Building, DollarSign, Globe, MapPin, User } from "lucide-react";
+import { Book, Calendar, Car, CreditCard, FileText, Globe, MapPin, Phone, Rabbit, ShoppingBag, User, Utensils } from "lucide-react";
 import React from "react";
 
 /**
@@ -13,16 +13,30 @@ export const getCategoryIcon = (
   category: TemplateCategory
 ): React.ReactNode => {
   switch (category) {
-    case "Human Data":
+    case "Person":
       return React.createElement(User, { className: "w-4 h-4" });
-    case "Business Data":
-      return React.createElement(Building, { className: "w-4 h-4" });
-    case "Location Data":
-      return React.createElement(MapPin, { className: "w-4 h-4" });
-    case "Financial Data":
-      return React.createElement(DollarSign, { className: "w-4 h-4" });
-    case "Internet Data":
+    case "Date":
+      return React.createElement(Calendar, { className: "w-4 h-4" });
+    case "Internet":
       return React.createElement(Globe, { className: "w-4 h-4" });
+    case "Phone":
+      return React.createElement(Phone, { className: "w-4 h-4" });
+    case "Animal":
+      return React.createElement(Rabbit, { className: "w-4 h-4" });
+    case "Book":
+      return React.createElement(Book, { className: "w-4 h-4" });
+    case "Commerce":
+      return React.createElement(ShoppingBag, { className: "w-4 h-4" });
+    case "Finance":
+      return React.createElement(CreditCard, { className: "w-4 h-4" });
+    case "Food":
+      return React.createElement(Utensils, { className: "w-4 h-4" });
+    case "Location":
+      return React.createElement(MapPin, { className: "w-4 h-4" });
+    case "Lorem":
+      return React.createElement(FileText, { className: "w-4 h-4" });
+    case "Vehicle":
+      return React.createElement(Car, { className: "w-4 h-4" });
     default:
       return null;
   }
