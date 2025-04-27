@@ -33,7 +33,7 @@ const LandingPage = () => {
     if (isAuthenticated) {
       navigate("/projects");
     } else {
-      navigate("/diagram-editor");
+      navigate("/untitled-project");
     }
   };
 

@@ -16,7 +16,7 @@ const AppRouter = () => {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
-      <Route path="/diagram-editor" element={<UntitledProjectPage />} />
+      <Route path="/untitled-project" element={<UntitledProjectPage />} />
       <Route path="/lab" element={<Lab />} />
       <Route path="/theme-preview" element={<ThemePreview />} />
       
