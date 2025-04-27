@@ -1,0 +1,1 @@
+export const MAX_ROW_COUNT = 50;

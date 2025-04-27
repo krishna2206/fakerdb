@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { MAX_ROW_COUNT } from "@/constants";
 import { AuthUser } from "@/hooks/useAuth";
 import {
   getProjectDiagram,
@@ -126,8 +127,6 @@ function DiagramEditorContent({
   const [isSQLPanelOpen, setSQLPanelOpen] = useState(false);
   const [generatedSQL, setGeneratedSQL] = useState<GeneratedData>(null);
   const [rowCount, setRowCount] = useState(10);
-
-  const MAX_ROW_COUNT = 50;
 
   const handleRowCountChange = useCallback(
     (value: number) => {

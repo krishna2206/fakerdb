@@ -2,8 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { MAX_ROW_COUNT } from "@/constants";
 import { AuthUser } from "@/hooks/useAuth";
-import { MAX_ROW_COUNT } from "@/services/singleTableService";
 import {
   ArrowLeft,
   Loader2,
