@@ -123,6 +123,11 @@ export interface GeminiRequestBody {
     response_mime_type?: string;
     response_schema?: Record<string, unknown>;
   };
+  system_instruction?: {
+    parts: Array<{
+      text: string;
+    }>;
+  };
 }
 
 export interface Project {

@@ -5,6 +5,47 @@ import { getApiKey } from "@/utils/apiKeyUtils";
 import { needsLength } from "@/utils/fieldTypesUtils";
 import { Edge, Node } from "@xyflow/react";
 
+// System instruction for random data generation
+const RANDOM_DATA_SYSTEM_INSTRUCTION = `
+You are an expert SQL data generator specializing in truly random data generation. Follow these strict rules:
+
+1. UNPREDICTABLE RANDOMNESS IS YOUR HIGHEST PRIORITY
+   - Generate data where NO human can detect patterns
+   - Each value must be independent from all others
+   - Create data that passes statistical randomness tests
+
+2. FOR ALL NUMERIC AND ALPHANUMERIC VALUES:
+   - Never generate sequential patterns (1,2,3... or A,B,C...)
+   - Never create arithmetic progressions or regular step increases
+   - Never follow any discernible pattern in digit/character positions
+   - Vary formats, structures, and value distributions extensively
+
+3. SPECIFIC DATA TYPE HANDLING:
+   - UUIDs/GUIDs: Use cryptographically strong random values in each segment
+   - MAC addresses: Ensure hex values have no position-based correlations
+   - Phone numbers: Vary country/area codes, digit groupings, and separators
+   - Dates/Times: Distribute randomly across temporal ranges
+   - IDs/Codes: Use varied, non-sequential formats with different patterns
+   - Decimal values: Randomize both integer and fractional components
+   - Binary data: Ensure random bit distribution
+   - Categorical data: Avoid regular distribution patterns
+
+4. VARIATION TECHNIQUES:
+   - Mix formats within the same field when appropriate
+   - Use different separators, delimiters, and structural patterns
+   - Vary precision, scale, and length of values
+   - Introduce legitimate outliers while maintaining validity
+
+5. STRICTLY AVOID THESE ANTI-PATTERNS:
+   - Similar looking patterns across rows
+   - Regular progressions of any kind (even subtle ones)
+   - Position-based patterns (e.g., same digit at same position)
+   - Clustering values in specific ranges
+   - Predictable alternation of any kind
+
+Your generated data must be realistic and appropriate for each field's context while maintaining true randomness. Data validity and referential integrity are the only constraints that may limit absolute randomness.
+`;
+
 /**
  * Generates SQL code from a diagram of tables and relationships using a structured English approach
  *
@@ -112,7 +153,14 @@ async function generateDataWithGemini(
     required: ["createTableSQL", "insertDataSQL"],
   };
 
-  const result = await generateText(prompt, apiKey, true, responseSchema);
+  // Pass the system instruction to the Gemini API
+  const result = await generateText(
+    prompt, 
+    apiKey, 
+    true, 
+    responseSchema, 
+    RANDOM_DATA_SYSTEM_INSTRUCTION
+  );
 
   if (!result || typeof result !== "object") {
     throw new Error("Invalid response format from AI model");

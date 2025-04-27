@@ -8,6 +8,10 @@ import {
 import { MAX_ROW_COUNT } from "@/services/singleTableService";
 import { GeneratedData, Project, TableField } from "@/types/types";
 import {
+  convertFieldType,
+  supportsAutoIncrement,
+} from "@/utils/fieldTypesUtils";
+import {
   addEdge,
   Background,
   BackgroundVariant,
@@ -52,13 +56,24 @@ const EmptyDiagramMessage = () => (
   <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-4 p-6 max-w-md text-center z-10">
     <div className="bg-muted/70 border border-border rounded-xl px-6 py-8 shadow-sm backdrop-blur-sm">
       <div className="flex items-center justify-center mb-4">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-bounce text-primary">
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="animate-bounce text-primary"
+        >
           <polyline points="18 15 12 9 6 15"></polyline>
         </svg>
       </div>
       <h3 className="text-lg font-medium mb-2">Your diagram is empty</h3>
       <p className="text-muted-foreground">
-        Click the "Add Table" button in the toolbar to start designing your database
+        Click the "Add Table" button in the toolbar to start designing your
+        database
       </p>
     </div>
   </div>
@@ -107,20 +122,23 @@ function DiagramEditorContent({
   const [generatedSQL, setGeneratedSQL] = useState<GeneratedData>(null);
   const [rowCount, setRowCount] = useState(10);
 
-  const handleRowCountChange = useCallback((value: number) => {
-    // Apply the same MAX_ROW_COUNT limit as in single table mode
-    const safeRowCount = Math.min(value, MAX_ROW_COUNT);
-    
-    if (safeRowCount < value) {
-      toast({
-        title: "Row count limited",
-        description: `Maximum number of rows is limited to ${MAX_ROW_COUNT}`,
-        variant: "warning"
-      });
-    }
-    
-    setRowCount(safeRowCount);
-  }, [toast]);
+  const handleRowCountChange = useCallback(
+    (value: number) => {
+      // Apply the same MAX_ROW_COUNT limit as in single table mode
+      const safeRowCount = Math.min(value, MAX_ROW_COUNT);
+
+      if (safeRowCount < value) {
+        toast({
+          title: "Row count limited",
+          description: `Maximum number of rows is limited to ${MAX_ROW_COUNT}`,
+          variant: "warning",
+        });
+      }
+
+      setRowCount(safeRowCount);
+    },
+    [toast]
+  );
 
   // Load diagram data when component mounts
   useEffect(() => {
@@ -372,54 +390,56 @@ function DiagramEditorContent({
 
   const addNewTable = useCallback(() => {
     const newId = `table_${Date.now()}`;
-    
+
     // Default position (in case there are no nodes)
     let positionX = 250;
     let positionY = 100;
-    
+
     // Table node dimensions (approximate)
     const TABLE_WIDTH = 220;
     const TABLE_HEIGHT = 200;
     const SPACING = 50;
-    
+
     // Get last node position to place next to it
     if (nodes.length > 0) {
       const lastNode = nodes[nodes.length - 1];
-      
+
       // Start by positioning to the right of the last node
       positionX = lastNode.position.x + TABLE_WIDTH + SPACING;
       positionY = lastNode.position.y;
-      
+
       // If we're getting too far to the right, create a new row
       const MAX_X = 2000; // prevent nodes from going too far right
       if (positionX > MAX_X) {
         positionX = 250;
         // Find the maximum Y to start a new row below all existing nodes
-        const maxY = Math.max(...nodes.map(node => node.position.y + TABLE_HEIGHT));
+        const maxY = Math.max(
+          ...nodes.map((node) => node.position.y + TABLE_HEIGHT)
+        );
         positionY = maxY + SPACING;
       }
-      
+
       // Check for overlaps with any existing node
       let hasOverlap = true;
       let attemptCount = 0;
       const MAX_ATTEMPTS = 10;
-      
+
       while (hasOverlap && attemptCount < MAX_ATTEMPTS) {
         hasOverlap = false;
-        
+
         // Check if the new position overlaps with any existing node
         for (const node of nodes) {
           // Simple bounding box overlap check
           const overlap = !(
-            positionX + TABLE_WIDTH < node.position.x || 
+            positionX + TABLE_WIDTH < node.position.x ||
             positionX > node.position.x + TABLE_WIDTH ||
             positionY + TABLE_HEIGHT < node.position.y ||
             positionY > node.position.y + TABLE_HEIGHT
           );
-          
+
           if (overlap) {
             hasOverlap = true;
-            
+
             // Move to the right on initial attempts
             if (attemptCount < 3) {
               positionX += TABLE_WIDTH / 2;
@@ -430,17 +450,23 @@ function DiagramEditorContent({
             } else {
               // Last resort: move to a slightly random position, but still arranged
               positionX = 250 + Math.random() * 100;
-              positionY = Math.max(...nodes.map(n => n.position.y + TABLE_HEIGHT)) + SPACING;
+              positionY =
+                Math.max(...nodes.map((n) => n.position.y + TABLE_HEIGHT)) +
+                SPACING;
             }
-            
+
             break;
           }
         }
-        
+
         attemptCount++;
       }
     }
 
+    const newNodeIdType =
+      project.databaseType === "MySQL"
+        ? "INT"
+        : convertFieldType("INT", project.databaseType);
     const newNode = {
       id: newId,
       type: "tableNode",
@@ -450,10 +476,10 @@ function DiagramEditorContent({
           {
             id: crypto.randomUUID(),
             name: "id",
-            type: "INT",
+            type: newNodeIdType,
             primaryKey: true,
             nullable: false,
-            autoIncrement: true,
+            autoIncrement: supportsAutoIncrement(newNodeIdType),
             description: "Primary key",
           },
         ],
@@ -471,7 +497,7 @@ function DiagramEditorContent({
     setTimeout(() => {
       setSelectedNode(newNode);
       setSidebarOpen(true);
-      
+
       // Scroll the node into view if it's outside the visible area
       if (reactFlowInstance) {
         reactFlowInstance.fitView({
@@ -774,7 +800,7 @@ function DiagramEditorContent({
               )}
 
               {!selectedNode && !selectedEdge && (
-                <DiagramSidebar 
+                <DiagramSidebar
                   onClose={closeSidebar}
                   databaseType={project.databaseType}
                 />

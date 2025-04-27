@@ -10,6 +10,7 @@ const GEMINI_MODEL = "gemini-2.0-flash-exp";
  * @param apiKey - The API key for authenticating with the Gemini API
  * @param useStructuredResponse - Whether to use the structured response feature (default: false)
  * @param responseSchema - Optional JSON schema for structured responses
+ * @param systemInstruction - Optional system instruction to guide the model behavior
  * @returns A Promise that resolves to the generated text string or structured JSON
  * @throws Will throw an error if the API request fails, including the status code and error message
  */
@@ -17,7 +18,8 @@ export async function generateText(
   prompt: string,
   apiKey: string,
   useStructuredResponse: boolean = false,
-  responseSchema?: Record<string, unknown>
+  responseSchema?: Record<string, unknown>,
+  systemInstruction?: string
 ) {
   const url = `${BASE_API_URL}/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
 
@@ -32,12 +34,23 @@ export async function generateText(
       },
     ],
     generationConfig: {
-      temperature: 0.2,
+      temperature: 1.5,
       topK: 32,
       topP: 0.95,
       maxOutputTokens: 8192,
     },
   };
+
+  // Add system instruction if provided
+  if (systemInstruction) {
+    requestBody.system_instruction = {
+      parts: [
+        {
+          text: systemInstruction,
+        },
+      ],
+    };
+  }
 
   // Add structured response configuration if requested
   if (useStructuredResponse && responseSchema) {
