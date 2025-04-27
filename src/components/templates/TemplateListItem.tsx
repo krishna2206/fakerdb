@@ -45,7 +45,7 @@ export const TemplateListItem: React.FC<TemplateListItemProps> = ({
       </p>
 
       {template.variations && template.variations[0]?.exampleValues && (
-        <div className="mt-1.5">
+        <div className="mt-4">
           <h4 className="text-xs font-medium mb-1">Examples:</h4>
           {renderExampleBadges(template.variations[0].exampleValues)}
         </div>

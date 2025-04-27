@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/use-toast";
+import { convertSQLToCSV, downloadCSV, downloadMultipleCSVAsZip } from "@/services/csvExportService";
 import { DatabaseType, Project } from "@/types/types";
 import { refineSQLWithGemini } from "@/utils/sqlRefinementUtils";
-import { Copy, Download, Loader2, WandSparkles } from "lucide-react";
+import { Copy, Download, FileCode, FileSpreadsheet, Loader2, WandSparkles } from "lucide-react";
 import React, { useState } from "react";
 import SQLHighlighter from "./SQLHighlighter";
 
@@ -25,6 +27,7 @@ const SQLDisplay: React.FC<SQLDisplayProps> = ({
   const [activeTab, setActiveTab] = useState<string>("create");
   const [refinedCreateSQL, setRefinedCreateSQL] = useState<string | null>(null);
   const [refinedInsertSQL, setRefinedInsertSQL] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
 
   const handleCopy = (sql: string, type: string) => {
     navigator.clipboard.writeText(sql);
@@ -97,7 +100,55 @@ const SQLDisplay: React.FC<SQLDisplayProps> = ({
     }
   };
 
-  // Get the current SQL based on active tab and refinement status
+  const handleCSVExport = async () => {
+    setIsExporting(true);
+    try {
+      const currentSQL = getCurrentSQL("insert");
+      const csvByTable = convertSQLToCSV(currentSQL, databaseType);
+      const tableCount = Object.keys(csvByTable).length;
+
+      if (tableCount === 0) {
+        toast({
+          title: "No data to export",
+          description: "There is no valid data to export to CSV.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (tableCount === 1) {
+        const tableName = Object.keys(csvByTable)[0];
+        const csvContent = csvByTable[tableName];
+        const fileName = `${tableName}_data.csv`;
+
+        downloadCSV(csvContent, fileName);
+
+        toast({
+          title: "CSV Downloaded",
+          description: `${fileName} has been downloaded.`,
+          duration: 2000,
+        });
+      } else {
+        await downloadMultipleCSVAsZip(csvByTable, project?.name || "fakerdb_export");
+
+        toast({
+          title: "CSV Export Complete",
+          description: `Exported ${tableCount} tables as ZIP archive.`,
+          duration: 2000,
+        });
+      }
+    } catch (error) {
+      console.error("Error exporting to CSV:", error);
+      toast({
+        title: "Export failed",
+        description: "Failed to export data to CSV. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const getCurrentSQL = (tab: string) => {
     if (tab === "create") {
       return refinedCreateSQL || createTableSQL;
@@ -106,7 +157,7 @@ const SQLDisplay: React.FC<SQLDisplayProps> = ({
     }
   };
 
-  const className = project ? "w-full h-full flex flex-col" : "w-full flex flex-col"
+  const className = project ? "w-full h-full flex flex-col" : "w-full flex flex-col";
 
   return (
     <Card className={className}>
@@ -191,25 +242,59 @@ const SQLDisplay: React.FC<SQLDisplayProps> = ({
                   onClick={() =>
                     handleCopy(getCurrentSQL("insert"), "Insert Data")
                   }
-                  disabled={isRefining}
+                  disabled={isRefining || isExporting}
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() =>
-                    handleDownload(getCurrentSQL("insert"), "insert_data.sql")
-                  }
-                  disabled={isRefining}
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      disabled={isRefining || isExporting}
+                      title="Download options"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-2">
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          handleDownload(getCurrentSQL("insert"), "insert_data.sql")
+                        }
+                        className="justify-start"
+                        disabled={isRefining || isExporting}
+                      >
+                        <FileCode className="h-4 w-4 mr-2" />
+                        Export as SQL
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCSVExport}
+                        className="justify-start"
+                        disabled={isRefining || isExporting}
+                      >
+                        {isExporting ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <FileSpreadsheet className="h-4 w-4 mr-2" />
+                        )}
+                        Export as CSV
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={handleRefineSQL}
-                  disabled={isRefining}
+                  disabled={isRefining || isExporting}
                   title="Refine SQL to fix eventual syntax errors"
                 >
                   {isRefining ? (
@@ -223,6 +308,11 @@ const SQLDisplay: React.FC<SQLDisplayProps> = ({
                 <div className="p-4 bg-muted rounded-md text-sm mt-2 h-[calc(100%-2rem)] flex items-center justify-center flex-col gap-2">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   <p>Refining SQL...</p>
+                </div>
+              ) : isExporting ? (
+                <div className="p-4 bg-muted rounded-md text-sm mt-2 h-[calc(100%-2rem)] flex items-center justify-center flex-col gap-2">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p>Preparing CSV export...</p>
                 </div>
               ) : (
                 <div className="h-[calc(100%-2rem)] overflow-auto mt-2">

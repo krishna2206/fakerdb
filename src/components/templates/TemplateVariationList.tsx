@@ -55,7 +55,7 @@ export const TemplateVariationList: React.FC<TemplateVariationListProps> = ({
             </div>
             <p className="text-sm text-muted-foreground mt-1">{variation.description}</p>
             
-            <div className="mt-1.5">
+            <div className="mt-4">
               <h4 className="text-xs font-medium mb-1">Examples:</h4>
               {renderExampleBadges(variation.exampleValues)}
             </div>
