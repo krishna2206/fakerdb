@@ -1,19 +1,19 @@
 import { Button } from "@/components/ui/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
 
@@ -50,8 +50,7 @@ const DatabaseTypeModal = ({
         <DialogHeader>
           <DialogTitle>Configure Project Database</DialogTitle>
           <DialogDescription>
-            Select the database system you want to generate SQL for. You can
-            change this later.
+            Select the database system you want to generate SQL for.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">

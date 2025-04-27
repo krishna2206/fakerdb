@@ -20,7 +20,8 @@ const WorkspaceAlert: React.FC<WorkspaceAlertProps> = ({ onSignIn }) => {
         <div className="flex-1">
           <div className="font-medium text-xs">Temporary Workspace</div>
           <p className="text-xs mt-1">
-            You are currently not signed in. Please sign in to save your work and access it later.
+            Your work <span className="font-bold">will not be saved</span>. Please sign in to
+            create a permanent workspace with saved projects.
           </p>
           {onSignIn && (
             <div className="flex mt-1.5">
