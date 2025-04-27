@@ -8,14 +8,14 @@ import LoadingSpinner from "@/components/ui/loading-spinner";
 import { useToast } from "@/components/ui/use-toast";
 import { useApiKey } from "@/hooks/useApiKey";
 import { useAuth } from "@/hooks/useAuth";
-import { generateMultitableData } from "@/services/multiTableService";
+import { generateMultitableData } from "@/services/aiGenerationService";
 import { getProject } from "@/services/projectService";
 import { GeneratedData, Project } from "@/types/types";
 import { Edge, Node } from "@xyflow/react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-const ProjectDetail = () => {
+const ProjectPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -196,4 +196,4 @@ const ProjectDetail = () => {
   );
 };
 
-export default ProjectDetail;
+export default ProjectPage;

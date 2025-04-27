@@ -7,6 +7,7 @@ import { MAX_ROW_COUNT } from "@/services/singleTableService";
 import {
   ArrowLeft,
   Loader2,
+  LogIn,
   Save,
   Settings,
   Sparkles,
@@ -31,7 +32,10 @@ interface DiagramToolbarProps {
   onOpenProjectSettings: () => void;
   onOpenSettings: () => void;
   onLogout?: () => void;
+  onSignIn?: () => void;
+  onSignUp?: () => void;
   nodesCount?: number;
+  isUnauthenticated?: boolean;
 }
 
 const DiagramToolbar: React.FC<DiagramToolbarProps> = ({
@@ -51,7 +55,10 @@ const DiagramToolbar: React.FC<DiagramToolbarProps> = ({
   onOpenProjectSettings,
   onOpenSettings,
   onLogout,
+  onSignIn,
+  onSignUp,
   nodesCount = 0,
+  isUnauthenticated,
 }) => {
   return (
     <div className="border-b border-border py-2 px-4 flex justify-between items-center bg-card h-16">
@@ -81,22 +88,27 @@ const DiagramToolbar: React.FC<DiagramToolbarProps> = ({
           <Table className="h-4 w-4" />
           <span className="hidden sm:inline ml-1">Add Table</span>
         </Button>
-        <Button
-          variant={isSaving ? "ghost" : hasUnsavedChanges ? "default" : "ghost"}
-          size="sm"
-          onClick={onSave}
-          disabled={!hasUnsavedChanges || isSaving}
-          className="h-10 flex items-center"
-        >
-          {isSaving ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          <span className="hidden sm:inline ml-1">
-            {isSaving ? "Saving..." : "Save"}
-          </span>
-        </Button>
+        
+        {/* Only show save button for authenticated users */}
+        {!isUnauthenticated && (
+          <Button
+            variant={isSaving ? "ghost" : hasUnsavedChanges ? "default" : "ghost"}
+            size="sm"
+            onClick={onSave}
+            disabled={!hasUnsavedChanges || isSaving}
+            className="h-10 flex items-center"
+            title="Save your diagram"
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            <span className="hidden sm:inline ml-1">
+              {isSaving ? "Saving..." : "Save"}
+            </span>
+          </Button>
+        )}
 
         <div className="flex items-center gap-2 rounded px-2 bg-background">
           <Label htmlFor="row-count" className="text-xs whitespace-nowrap">
@@ -119,20 +131,52 @@ const DiagramToolbar: React.FC<DiagramToolbarProps> = ({
           disabled={isGenerating || apiKeyMissing || nodesCount === 0}
           size="sm"
           className="h-10 flex items-center"
-          title={nodesCount === 0 ? "Add tables to generate SQL" : "Generate SQL statements"}
+          title={
+            nodesCount === 0
+              ? "Add tables to generate SQL"
+              : "Generate SQL statements"
+          }
         >
           <Sparkles className="h-4 w-4" />
           <span className="hidden sm:inline ml-1">Generate SQL</span>
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onOpenProjectSettings}
-          className="h-10 flex items-center"
-        >
-          <Settings className="h-4 w-4" />
-          <span className="hidden sm:inline ml-1">Project settings</span>
-        </Button>
+
+        {/* Only show project settings for authenticated users */}
+        {!isUnauthenticated && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onOpenProjectSettings}
+            className="h-10 flex items-center"
+          >
+            <Settings className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1">Project settings</span>
+          </Button>
+        )}
+
+        {/* Show settings button only for unauthenticated users */}
+        {isUnauthenticated && (
+          <>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={onSignIn}
+              className="h-10 flex items-center"
+            >
+              <LogIn className="h-4 w-4" />
+              <span className="hidden sm:inline ml-1">Sign In</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenSettings}
+              className="h-10 flex items-center"
+            >
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline ml-1">Settings</span>
+            </Button>
+          </>
+        )}
 
         {/* User profile avatar and dropdown */}
         {user && (

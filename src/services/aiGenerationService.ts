@@ -6,7 +6,7 @@ import { needsLength } from "@/utils/fieldTypesUtils";
 import { Edge, Node } from "@xyflow/react";
 
 // System instruction for random data generation
-const RANDOM_DATA_SYSTEM_INSTRUCTION = `
+const SYSTEM_INSTRUCTIONS = `
 You are an expert SQL data generator specializing in truly random data generation. Follow these strict rules:
 
 1. UNPREDICTABLE RANDOMNESS IS YOUR HIGHEST PRIORITY
@@ -49,7 +49,7 @@ Your generated data must be realistic and appropriate for each field's context w
 /**
  * Generates SQL code from a diagram of tables and relationships using a structured English approach
  *
- * @param projectId - The project ID
+ * @param projectId - The project ID, or null to use global API key
  * @param databaseType - The database type (MySQL, PostgreSQL, etc.)
  * @param nodes - The diagram nodes representing tables
  * @param edges - The diagram edges representing relationships
@@ -57,14 +57,19 @@ Your generated data must be realistic and appropriate for each field's context w
  * @returns Promise with a structured result containing createTableSQL and insertDataSQL
  */
 export async function generateMultitableData(
-  projectId: string,
+  projectId: string | null,
   databaseType: string,
   nodes: Node[],
   edges: Edge[],
   rowCount: number = 10
 ): Promise<GeneratedData> {
   try {
-    const project = await getProject(projectId);
+    let project = null;
+    
+    if (projectId) {
+      project = await getProject(projectId);
+    }
+
     const apiKey = getApiKey(project);
 
     // Calculate optimal creation order based on relationships
@@ -109,7 +114,7 @@ export async function generateMultitableData(
 
 /**
  * Calls the Gemini API to generate SQL based on the diagram definition
- * @param project - The project object containing description and metadata
+ * @param project - The project object containing description and metadata (can be null)
  * @param databaseType - The database type (MySQL, PostgreSQL, etc.)
  * @param nodes - The diagram nodes representing tables
  * @param edges - The diagram edges representing relationships
@@ -120,7 +125,7 @@ export async function generateMultitableData(
  * @throws Error if API request fails or response cannot be parsed
  */
 async function generateDataWithGemini(
-  project: Project,
+  project: Project | null,
   databaseType: string,
   nodes: Node[],
   edges: Edge[],
@@ -153,13 +158,12 @@ async function generateDataWithGemini(
     required: ["createTableSQL", "insertDataSQL"],
   };
 
-  // Pass the system instruction to the Gemini API
   const result = await generateText(
     prompt, 
     apiKey, 
     true, 
     responseSchema, 
-    RANDOM_DATA_SYSTEM_INSTRUCTION
+    SYSTEM_INSTRUCTIONS
   );
 
   if (!result || typeof result !== "object") {
@@ -232,7 +236,7 @@ function calculateCreationOrderFromDiagram(
 /**
  * Creates a detailed prompt for the Gemini AI model describing multiple tables and their relationships
  *
- * @param project - The project object containing description and metadata
+ * @param project - The project object containing description and metadata (can be null)
  * @param databaseType - The database type (MySQL, PostgreSQL, etc.)
  * @param nodes - The diagram nodes representing tables
  * @param edges - The diagram edges representing relationships
@@ -241,7 +245,7 @@ function calculateCreationOrderFromDiagram(
  * @returns Formatted prompt string for the AI model
  */
 function createMultitablePrompt(
-  project: Project,
+  project: Project | null,
   databaseType: string,
   nodes: Node[],
   edges: Edge[],
@@ -251,7 +255,7 @@ function createMultitablePrompt(
   let prompt = `Generate database content for a ${databaseType} database based on the following schema:`;
 
   // Add project description for context if available
-  if (project.description && project.description.trim()) {
+  if (project?.description && project.description.trim()) {
     prompt += `\n\nProject Description: ${project.description.trim()}`;
   }
 

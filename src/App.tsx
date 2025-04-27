@@ -6,24 +6,24 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
 import Lab from "./pages/Lab";
 import NotFound from "./pages/NotFound";
-import ProjectDetail from "./pages/ProjectDetail";
+import ProjectPage from "./pages/ProjectPage";
 import Projects from "./pages/Projects";
-import SingleTableMode from "./pages/SingleTableMode";
 import ThemePreview from "./pages/ThemePreview";
+import UntitledProjectPage from "./pages/UntitledProjectPage";
 
 // Main app router
 const AppRouter = () => {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
-      <Route path="/single-table" element={<SingleTableMode />} />
+      <Route path="/diagram-editor" element={<UntitledProjectPage />} />
       <Route path="/lab" element={<Lab />} />
       <Route path="/theme-preview" element={<ThemePreview />} />
       
       {/* Protected routes */}
       <Route element={<ProtectedRoute />}>
         <Route path="/projects" element={<Projects />} />
-        <Route path="/projects/:projectId" element={<ProjectDetail />} />
+        <Route path="/projects/:projectId" element={<ProjectPage />} />
       </Route>
       
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

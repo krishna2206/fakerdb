@@ -475,7 +475,6 @@ export default function TablePropertiesSidebar({
                     onSelectTemplate={(template, variation) =>
                       handleApplyTemplate(index, template, variation)
                     }
-                    className="w-full"
                   />
                 </div>
               )}

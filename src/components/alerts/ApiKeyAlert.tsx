@@ -1,7 +1,7 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { AlertCircle, X } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import React from "react";
 
 interface ApiKeyAlertProps {
@@ -13,6 +13,7 @@ interface ApiKeyAlertProps {
   compact?: boolean;
   onDismiss?: () => void;
   className?: string;
+  isUnauthenticated?: boolean;
 }
 
 const ApiKeyAlert: React.FC<ApiKeyAlertProps> = ({
@@ -24,10 +25,10 @@ const ApiKeyAlert: React.FC<ApiKeyAlertProps> = ({
   compact = false,
   onDismiss,
   className = "",
+  isUnauthenticated = false,
 }) => {
   if (!apiKeyMissing && !isApiKeyExpired) return null;
 
-  // Use old behavior if only onSettingsClick is provided
   if (onSettingsClick && !onGlobalSettings && !onProjectSettings) {
     if (compact) {
       return (
@@ -58,16 +59,6 @@ const ApiKeyAlert: React.FC<ApiKeyAlertProps> = ({
                 >
                   Add API Key
                 </Button>
-                {onDismiss && (
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    onClick={onDismiss}
-                    className="h-6 w-6 p-0 ml-auto"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
               </div>
             </div>
           </div>
@@ -133,7 +124,7 @@ const ApiKeyAlert: React.FC<ApiKeyAlertProps> = ({
                   Global Key
                 </Button>
               )}
-              {onProjectSettings && (
+              {onProjectSettings && !isUnauthenticated && (
                 <Button 
                   size="sm" 
                   variant="outline"
@@ -142,16 +133,6 @@ const ApiKeyAlert: React.FC<ApiKeyAlertProps> = ({
                             dark:bg-red-900/30 dark:border-red-800 dark:hover:bg-red-900/60"
                 >
                   Project Key
-                </Button>
-              )}
-              {onDismiss && (
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  onClick={onDismiss}
-                  className="h-6 w-6 p-0 ml-auto"
-                >
-                  <X className="h-3 w-3" />
                 </Button>
               )}
             </div>
@@ -185,7 +166,7 @@ const ApiKeyAlert: React.FC<ApiKeyAlertProps> = ({
               Add Global API Key
             </Button>
           )}
-          {onProjectSettings && (
+          {onProjectSettings && !isUnauthenticated && (
             <Button
               variant="outline"
               size="sm"

@@ -19,12 +19,10 @@ interface TemplateSelectorProps {
     template: TemplateData,
     variation?: TemplateVariation
   ) => void;
-  className?: string;
 }
 
 export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   onSelectTemplate,
-  className = "",
 }) => {
   const [open, setOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateData | null>(
@@ -88,7 +86,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
         <Button 
           variant="outline" 
           size="sm" 
-          className={`h-16 relative bg-background border border-input text-foreground hover:bg-accent hover:text-accent-foreground ${className}`}
+          className="w-full h-16 relative bg-background border border-input text-foreground hover:bg-accent hover:text-accent-foreground"
         >
           <div className="flex items-center w-full">
             <div className="flex items-center self-stretch mr-2">

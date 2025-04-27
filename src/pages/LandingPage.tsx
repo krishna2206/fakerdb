@@ -33,7 +33,7 @@ const LandingPage = () => {
     if (isAuthenticated) {
       navigate("/projects");
     } else {
-      navigate("/single-table");
+      navigate("/diagram-editor");
     }
   };
 
@@ -129,9 +129,9 @@ const LandingPage = () => {
                       variant="outline"
                       size="lg"
                       className="px-8 py-6 text-lg bg-background border-primary/20"
-                      onClick={handleSignUp}
+                      onClick={handleSignIn}
                     >
-                      Sign up
+                      Sign in
                     </Button>
                   )}
                 </div>
@@ -502,8 +502,8 @@ const LandingPage = () => {
                       1. Define Your Schema
                     </h3>
                     <p className="text-muted-foreground">
-                      Design your database visually using our diagram editor or
-                      use the single table mode to design a single table
+                      Design your database visually using our intuitive diagram
+                      editor to create tables and relationships
                     </p>
                   </div>
 

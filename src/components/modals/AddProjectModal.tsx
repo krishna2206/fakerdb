@@ -1,29 +1,29 @@
 import { Button } from "@/components/ui/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
-    Form,
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -70,6 +70,13 @@ const AddProjectModal = ({
       geminiApiKey: "",
     },
   });
+
+  const databaseOptions = [
+    { value: "MySQL", label: "MySQL" },
+    { value: "PostgreSQL", label: "PostgreSQL" },
+    { value: "SQLite", label: "SQLite" },
+    { value: "Oracle", label: "Oracle" },
+  ];
 
   const handleClose = () => {
     form.reset();
@@ -175,10 +182,11 @@ const AddProjectModal = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="MySQL">MySQL</SelectItem>
-                      <SelectItem value="PostgreSQL">PostgreSQL</SelectItem>
-                      <SelectItem value="SQLite">SQLite</SelectItem>
-                      <SelectItem value="Oracle">Oracle</SelectItem>
+                      {databaseOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

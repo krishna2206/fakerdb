@@ -5,7 +5,6 @@ import {
   getProjectDiagram,
   saveProjectDiagram,
 } from "@/services/diagramService";
-import { MAX_ROW_COUNT } from "@/services/singleTableService";
 import { GeneratedData, Project, TableField } from "@/types/types";
 import {
   convertFieldType,
@@ -37,6 +36,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useScreenshot } from "use-react-screenshot";
 import ApiKeyAlert from "../alerts/ApiKeyAlert";
+import WorkspaceAlert from "../alerts/WorkspaceAlert";
 import SQLDisplay from "../SQLDisplay";
 import DiagramSidebar from "./DiagramSidebar";
 import DiagramToolbar from "./DiagramToolbar";
@@ -91,6 +91,9 @@ interface DiagramEditorProps {
   ) => Promise<GeneratedData>;
   user?: AuthUser;
   onLogout?: () => void;
+  isUnauthenticated?: boolean;
+  onSignIn?: () => void;
+  onSignUp?: () => void;
 }
 
 // Main component that will be exported
@@ -102,6 +105,9 @@ function DiagramEditorContent({
   onGenerateSQL,
   user,
   onLogout,
+  isUnauthenticated,
+  onSignIn,
+  onSignUp,
 }: DiagramEditorProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -115,16 +121,16 @@ function DiagramEditorContent({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const reactFlowInstance = useReactFlow();
-  const [apiKeyAlertDismissed, setApiKeyAlertDismissed] = useState(false);
   const [, takeScreenshot] = useScreenshot();
 
   const [isSQLPanelOpen, setSQLPanelOpen] = useState(false);
   const [generatedSQL, setGeneratedSQL] = useState<GeneratedData>(null);
   const [rowCount, setRowCount] = useState(10);
 
+  const MAX_ROW_COUNT = 50;
+
   const handleRowCountChange = useCallback(
     (value: number) => {
-      // Apply the same MAX_ROW_COUNT limit as in single table mode
       const safeRowCount = Math.min(value, MAX_ROW_COUNT);
 
       if (safeRowCount < value) {
@@ -661,14 +667,20 @@ function DiagramEditorContent({
   const handleBack = useCallback(() => {
     if (hasUnsavedChanges) {
       const confirm = window.confirm(
-        "You have unsaved changes. Save before leaving?"
+        "You have unsaved changes. Are you sure you want to leave?"
       );
-      if (confirm) {
-        saveDiagram();
+      if (!confirm) {
+        return;
       }
     }
-    navigate("/projects");
-  }, [hasUnsavedChanges, saveDiagram, navigate]);
+    
+    // Navigate to the appropriate page based on authentication status
+    if (isUnauthenticated) {
+      navigate("/");
+    } else {
+      navigate("/projects");
+    }
+  }, [hasUnsavedChanges, navigate, isUnauthenticated]);
 
   return (
     <div className="flex flex-col h-full relative">
@@ -689,6 +701,9 @@ function DiagramEditorContent({
         onOpenProjectSettings={onOpenProjectSettings}
         onOpenSettings={onOpenSettings}
         onLogout={onLogout}
+        onSignIn={onSignIn}
+        onSignUp={onSignUp}
+        isUnauthenticated={isUnauthenticated}
         nodesCount={nodes.length}
       />
 
@@ -752,18 +767,26 @@ function DiagramEditorContent({
             )}
           </Button>
 
-          {/* Compact API Key Alert */}
-          {apiKeyMissing && !apiKeyAlertDismissed && (
-            <div className="absolute left-4 top-4 z-10">
+          {/* Alerts Container */}
+          <div className="absolute left-4 top-4 z-10 flex flex-col gap-3">
+            {/* API Key Alert */}
+            {apiKeyMissing && (
               <ApiKeyAlert
                 compact={true}
                 onGlobalSettings={onOpenSettings}
                 onProjectSettings={onOpenProjectSettings}
-                onDismiss={() => setApiKeyAlertDismissed(true)}
                 className="max-w-xs"
+                isUnauthenticated={isUnauthenticated}
               />
-            </div>
-          )}
+            )}
+            
+            {/* Workspace Alert for unauthenticated users */}
+            {isUnauthenticated && (
+              <WorkspaceAlert
+                onSignIn={onSignIn}
+              />
+            )}
+          </div>
         </div>
 
         {/* Unified sidebar with single AnimatePresence */}
