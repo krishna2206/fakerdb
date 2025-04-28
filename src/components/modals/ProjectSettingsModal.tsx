@@ -25,7 +25,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { deleteProject, updateProject } from "@/services/projectService";
 import { Project } from "@/types/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, DatabaseIcon, Info, LockIcon, Trash2 } from "lucide-react";
+import { AlertCircle, DatabaseIcon, Info, LockIcon, ShieldCheck, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -242,6 +242,15 @@ const ProjectSettingsModal = ({
               />
 
               <div className="border rounded-md p-4 space-y-4">
+                <Alert className="border border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/50">
+                  <ShieldCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  <AlertTitle className="text-green-800 dark:text-green-400">API Key Security</AlertTitle>
+                  <AlertDescription className="text-green-700 dark:text-green-300 text-sm">
+                    Your API key is securely encrypted and only decrypted when used in your browser.
+                    Keys are tied to your account and device for enhanced protection.
+                  </AlertDescription>
+                </Alert>
+
                 <div className="flex flex-col space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="custom-api-key" className="font-medium">

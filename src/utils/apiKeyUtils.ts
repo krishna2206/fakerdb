@@ -13,7 +13,6 @@ import { Project } from "@/types/types";
  */
 export function validateApiKey(): { valid: boolean; error?: Error; apiKey?: string } {
   try {
-    // Check for API key in local storage
     const apiKey = localStorage.getItem("gemini_api_key");
 
     // Check if API key is expired
@@ -50,6 +49,7 @@ export function validateApiKey(): { valid: boolean; error?: Error; apiKey?: stri
 
 /**
  * Gets the appropriate API key to use based on project settings or global settings
+ * The project API keys are assumed to be already decrypted by the project service
  * 
  * @param project - Optional project that may have a custom API key
  * @returns The API key to use, or throws an error if none is available
@@ -71,4 +71,21 @@ export function getApiKey(project?: Project | null): string {
   }
   
   return validation.apiKey;
+}
+
+/**
+ * Determines if a key is available, either from the project or global settings
+ * 
+ * @param project - Optional project to check for project-specific API key
+ * @returns True if any API key is available, false otherwise
+ */
+export function isApiKeyAvailable(project?: Project | null): boolean {
+  // Check project-specific key first
+  if (project?.geminiApiKey) {
+    return true;
+  }
+  
+  // Check global key
+  const validation = validateApiKey();
+  return validation.valid && !!validation.apiKey;
 }

@@ -1,5 +1,6 @@
 import pb from '@/lib/pocketbaseClient';
 import { Project } from '@/types/types';
+import { decryptSensitiveData, encryptSensitiveData } from '@/utils/encryptionUtils';
 
 /**
  * Fetches projects for the currently authenticated user with optional pagination and search.
@@ -38,7 +39,7 @@ export const fetchProjects = async (
       description: record.description,
       userId: record.userId,
       databaseType: record.databaseType,
-      geminiApiKey: record.geminiApiKey || null,
+      geminiApiKey: record.geminiApiKey ? decryptSensitiveData(record.geminiApiKey, userId) : null,
       previewImage: record.previewImage || '/placeholder-diagram.svg',
       tableCount: record.tableCount || 0,
       createdAt: record.created,
@@ -64,14 +65,21 @@ export const fetchProjects = async (
  */
 export const getProject = async (projectId: string): Promise<Project> => {
   try {
+    const user = pb.authStore.record;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    const userId = user.id;
+
     const record = await pb.collection('projects').getOne(projectId);
+
     return {
       id: record.id,
       name: record.name,
       description: record.description,
       userId: record.userId,
       databaseType: record.databaseType,
-      geminiApiKey: record.geminiApiKey || null,
+      geminiApiKey: record.geminiApiKey ? decryptSensitiveData(record.geminiApiKey, userId) : null,
       previewImage: record.previewImage || '/placeholder-diagram.svg',
       tableCount: record.tableCount || 0,
       createdAt: record.created,
@@ -102,7 +110,7 @@ export const createProject = async (projectData: Omit<Project, 'id' | 'createdAt
       description: projectData.description,
       userId: userId,
       databaseType: projectData.databaseType,
-      geminiApiKey: projectData.geminiApiKey || null,
+      geminiApiKey: projectData.geminiApiKey ? encryptSensitiveData(projectData.geminiApiKey, userId) : null,
       previewImage: projectData.previewImage || '/placeholder-diagram.svg',
       tableCount: projectData.tableCount || 0,
     };
@@ -115,7 +123,7 @@ export const createProject = async (projectData: Omit<Project, 'id' | 'createdAt
       description: record.description,
       userId: record.userId,
       databaseType: record.databaseType,
-      geminiApiKey: record.geminiApiKey || null,
+      geminiApiKey: projectData.geminiApiKey,
       previewImage: record.previewImage || '/placeholder-diagram.svg',
       tableCount: record.tableCount || 0,
       createdAt: record.created,
@@ -136,7 +144,22 @@ export const createProject = async (projectData: Omit<Project, 'id' | 'createdAt
  */
 export const updateProject = async (projectId: string, projectData: Partial<Project>): Promise<Project> => {
   try {
-    const record = await pb.collection('projects').update(projectId, projectData);
+    const user = pb.authStore.record;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    const userId = user.id;
+    
+    // Create a copy to avoid modifying the original projectData
+    const dataToUpdate = { ...projectData };
+    
+    if (dataToUpdate.geminiApiKey !== undefined) {
+      dataToUpdate.geminiApiKey = dataToUpdate.geminiApiKey 
+        ? encryptSensitiveData(dataToUpdate.geminiApiKey, userId) 
+        : null;
+    }
+    
+    const record = await pb.collection('projects').update(projectId, dataToUpdate);
     
     return {
       id: record.id,
@@ -144,7 +167,7 @@ export const updateProject = async (projectId: string, projectData: Partial<Proj
       description: record.description,
       userId: record.userId,
       databaseType: record.databaseType,
-      geminiApiKey: record.geminiApiKey || null,
+      geminiApiKey: record.geminiApiKey ? decryptSensitiveData(record.geminiApiKey, userId) : null,
       previewImage: record.previewImage || '/placeholder-diagram.svg',
       tableCount: record.tableCount || 0,
       createdAt: record.created,
