@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 import { DatabaseType } from "@/types/types";
 
 /**
@@ -11,12 +12,15 @@ export function convertSQLToCSV(insertSQL: string, databaseType: DatabaseType): 
   
   if (!insertSQL) return csvByTable;
   
-  // Split SQL by semicolons to get individual statements
-  const statements = insertSQL.split(';').filter(statement => statement.trim().length > 0);
+  // Split SQL by semicolons and line breaks to handle large statements more reliably
+  const statements = insertSQL
+    .split(';')
+    .map(stmt => stmt.trim())
+    .filter(stmt => stmt.length > 0);
   
   for (const statement of statements) {
     // Only process INSERT statements
-    if (!statement.trim().toUpperCase().startsWith('INSERT')) continue;
+    if (!statement.toUpperCase().startsWith('INSERT')) continue;
     
     try {
       const { tableName, headers, rows } = parseInsertStatement(statement, databaseType);
@@ -32,6 +36,7 @@ export function convertSQLToCSV(insertSQL: string, databaseType: DatabaseType): 
       }
     } catch (error) {
       console.error(`Error parsing INSERT statement:`, error);
+      // Continue to the next statement instead of failing completely
       continue;
     }
   }
@@ -69,15 +74,16 @@ function parseInsertStatement(statement: string, databaseType: DatabaseType): {
   let headers: string[] = [];
   let rows: string[][] = [];
   
-  // Extract table name - pattern differs slightly by SQL dialect
-  const tableNameRegex = /INSERT\s+INTO\s+(?:(?:`|"|[|])?([^`"\s|()]+)(?:`|"|[|])?)/i;
+  // Extract table name with improved regex that handles quotes more reliably
+  const tableNameRegex = /INSERT\s+INTO\s+(?:(?:`|"|'|\[)?([^`"'\s\[\]()]+)(?:`|"|'|\])?)/i;
   const tableMatch = statement.match(tableNameRegex);
   if (tableMatch && tableMatch[1]) {
     tableName = tableMatch[1];
   }
   
-  // Extract column headers
-  const headersMatch = statement.match(/\(([^)]+)\)/);
+  // Extract column headers with improved pattern to handle multi-line SQL
+  const headersRegex = /INSERT\s+INTO\s+(?:(?:`|"|'|\[)?[^`"'\s\[\]()]+(?:`|"|'|\])?)(?:\s+|\n)\(([^)]+)\)/i;
+  const headersMatch = statement.match(headersRegex);
   if (headersMatch && headersMatch[1]) {
     headers = parseHeaderValues(headersMatch[1], databaseType);
   }
@@ -85,8 +91,8 @@ function parseInsertStatement(statement: string, databaseType: DatabaseType): {
   // Extract values rows
   const valuesText = extractValuesText(statement);
   if (valuesText) {
-    // Parse the values using a proper tokenizer for nested structures
-    rows = parseInsertValues(valuesText, databaseType);
+    // Use the enhanced value parser for large datasets
+    rows = parseInsertValues(valuesText, databaseType, headers.length);
   }
   
   return { tableName, headers, rows };
@@ -167,135 +173,133 @@ function cleanHeaderName(headerName: string, databaseType: DatabaseType): string
 }
 
 /**
- * Extract the VALUES portion of an INSERT statement
+ * Extracts the VALUES portion of an INSERT statement
  * @param statement The full INSERT statement
  * @returns The values text or null if not found
  */
 function extractValuesText(statement: string): string | null {
-  // Look for VALUES keyword (case insensitive) followed by the values
-  const valuesMatch = statement.match(/VALUES\s+(.+)/is);
-  return valuesMatch ? valuesMatch[1] : null;
+  // Enhanced pattern to capture VALUES more reliably, including multi-line statements
+  const valuesMatch = statement.match(/VALUES\s*(\([\s\S]*)/i);
+  if (!valuesMatch) return null;
+  
+  // Return everything after VALUES keyword
+  return valuesMatch[1].trim();
 }
 
 /**
- * Parse the values from the VALUES portion of an INSERT statement
+ * Parser for INSERT VALUES that handles large datasets more efficiently
  * @param valuesText The text containing the VALUES portion
  * @param databaseType The database type for proper SQL parsing
+ * @param expectedColumnCount Expected number of columns (for validation)
  * @returns Array of rows, each containing an array of field values
  */
-function parseInsertValues(valuesText: string, databaseType: DatabaseType): string[][] {
+function parseInsertValues(
+  valuesText: string, 
+  databaseType: DatabaseType, 
+  expectedColumnCount: number
+): string[][] {
   const rows: string[][] = [];
-  let currentRow: string[] = [];
-  let currentValue = '';
+
+  // State machine variables
+  let currentPosition = 0;
+  let inRow = false;
+  let rowStartPosition = 0;
   
-  // State tracking
-  let depth = 0;            // Track parentheses depth
-  let inQuote = false;      // Track if we're inside a quote
-  let quoteChar = '';       // Current quote character
-  let inJSON = false;       // Track if we're inside a JSON object/array
-  let jsonDepth = 0;        // Track JSON nesting level
-  let jsonBracketType = ''; // Track the type of JSON bracket ('{' or '[')
-  
-  // Process character by character
-  for (let i = 0; i < valuesText.length; i++) {
-    const char = valuesText[i];
-    const nextChar = i < valuesText.length - 1 ? valuesText[i + 1] : '';
+  // Process the values text character by character
+  while (currentPosition < valuesText.length) {
+    const char = valuesText[currentPosition];
     
     // Handle row start
-    if (char === '(' && !inQuote && !inJSON) {
-      if (depth === 0) {
-        // Start a new row when not nested
-        currentRow = [];
-        currentValue = '';
-      } else {
-        // Nested parenthesis - add to current value
-        currentValue += char;
-      }
-      depth++;
-      continue;
+    if (char === '(' && !inRow) {
+      inRow = true;
+      rowStartPosition = currentPosition;
     }
-    
     // Handle row end
-    if (char === ')' && !inQuote && !inJSON) {
-      depth--;
-      if (depth === 0) {
-        // End of a row, add the last value if there is one
-        if (currentValue.trim()) {
-          currentRow.push(formatValueForCSV(currentValue.trim(), databaseType));
-        }
-        
-        // Add the row to rows
-        if (currentRow.length > 0) {
-          rows.push([...currentRow]);
-        }
-      } else {
-        // Nested parenthesis - add to current value
-        currentValue += char;
-      }
-      continue;
-    }
-    
-    // Handle quote start/end
-    if ((char === "'" || char === '"' || char === '`') && (!inJSON || inQuote)) {
-      if (inQuote && char === quoteChar) {
-        // Check for escaped quotes (e.g., '' in SQL)
-        if (nextChar === char) {
-          // This is an escaped quote, add a single quote to the value and skip the next char
-          currentValue += char;
-          i++; // Skip the next character
-        } else {
-          // End of quoted section
-          inQuote = false;
-        }
-      } else if (!inQuote) {
-        // Start of quoted section
-        inQuote = true;
-        quoteChar = char;
-      } else {
-        // Different quote inside another quote - add as literal
-        currentValue += char;
-      }
-      continue;
-    }
-    
-    // Handle JSON start
-    if ((char === '{' || char === '[') && !inQuote && depth > 0) {
-      if (!inJSON) {
-        inJSON = true;
-        jsonDepth = 1;
-        jsonBracketType = char;
-      } else {
-        jsonDepth++;
-      }
-      currentValue += char;
-      continue;
-    }
-    
-    // Handle JSON end
-    if ((char === '}' || char === ']') && inJSON && !inQuote) {
-      currentValue += char;
-      jsonDepth--;
+    else if (char === ')' && inRow) {
+      const rowContent = valuesText.substring(rowStartPosition + 1, currentPosition);
+      const rowValues = parseRowValues(rowContent, databaseType);
       
-      if (jsonDepth === 0 && 
-          ((jsonBracketType === '{' && char === '}') || 
-           (jsonBracketType === '[' && char === ']'))) {
-        inJSON = false;
+      // Only add rows with the correct number of columns if expectedColumnCount is provided
+      if (rowValues.length === expectedColumnCount || expectedColumnCount === 0) {
+        rows.push(rowValues);
       }
-      continue;
+      
+      inRow = false;
     }
     
-    // Handle value separators (commas)
-    if (char === ',' && !inQuote && !inJSON && depth === 1) {
-      // Add the current value to the row and reset
-      currentRow.push(formatValueForCSV(currentValue.trim(), databaseType));
-      currentValue = '';
-    } else {
-      // Add character to current value
-      currentValue += char;
-    }
+    currentPosition++;
   }
   
   return rows;
+}
+
+/**
+ * Parse a single row of values from an INSERT statement
+ * @param rowContent The content between the parentheses for a single row
+ * @param databaseType The database type for proper SQL parsing
+ * @returns Array of field values for this row
+ */
+function parseRowValues(rowContent: string, databaseType: DatabaseType): string[] {
+  const values: string[] = [];
+  let currentPosition = 0;
+  let currentValue = '';
+  let inQuote = false;
+  let quoteChar = '';
+  let nestedLevel = 0;
+  
+  // Process the row content character by character
+  while (currentPosition < rowContent.length) {
+    const char = rowContent[currentPosition];
+    const nextChar = currentPosition < rowContent.length - 1 ? rowContent[currentPosition + 1] : '';
+    
+    // Handle quotes
+    if ((char === "'" || char === '"' || char === '`') && (nestedLevel === 0 || inQuote)) {
+      if (inQuote && char === quoteChar) {
+        // Check for escaped quotes (e.g., '' in SQL)
+        if (nextChar === char) {
+          // This is an escaped quote, add to value and skip next char
+          currentValue += char;
+          currentPosition++;
+        } else {
+          // End of quoted value
+          inQuote = false;
+        }
+      } else if (!inQuote) {
+        // Start of quoted value
+        inQuote = true;
+        quoteChar = char;
+      } else {
+        // A different quote inside another quote - add literally
+        currentValue += char;
+      }
+    }
+    // Handle nested structures (JSON objects/arrays, function calls, etc.)
+    else if ((char === '{' || char === '[' || char === '(') && !inQuote) {
+      nestedLevel++;
+      currentValue += char;
+    }
+    else if ((char === '}' || char === ']' || char === ')') && !inQuote) {
+      nestedLevel--;
+      currentValue += char;
+    }
+    // Handle commas as value separators (when not in quotes or nested structures)
+    else if (char === ',' && !inQuote && nestedLevel === 0) {
+      values.push(formatValueForCSV(currentValue.trim(), databaseType));
+      currentValue = '';
+    }
+    else {
+      currentValue += char;
+    }
+    
+    currentPosition++;
+  }
+  
+  // Add the last value if there is one
+  if (currentValue.trim()) {
+    values.push(formatValueForCSV(currentValue.trim(), databaseType));
+  }
+  
+  return values;
 }
 
 /**
