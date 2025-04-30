@@ -32,7 +32,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Code } from "lucide-react";
+import { ChevronLeft, ChevronRight, Code, Sparkle } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useScreenshot } from "use-react-screenshot";
@@ -43,6 +43,7 @@ import DiagramSidebar from "./DiagramSidebar";
 import DiagramToolbar from "./DiagramToolbar";
 import RelationshipEdge from "./RelationshipEdge";
 import RelationshipSidebar from "./RelationshipSidebar";
+import { SchemaGenerationDialog } from "./SchemaGenerationDialog";
 import TableNode from "./TableNode";
 
 const nodeTypes: NodeTypes = {
@@ -53,29 +54,29 @@ const edgeTypes: EdgeTypes = {
   relationshipEdge: RelationshipEdge,
 };
 
-const EmptyDiagramMessage = () => (
+const EmptyDiagramMessage = ({ onGenerateFromPrompt }: { onGenerateFromPrompt: () => void }) => (
   <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-4 p-6 max-w-md text-center z-10">
     <div className="bg-muted/70 border border-border rounded-xl px-6 py-8 shadow-sm backdrop-blur-sm">
-      <div className="flex items-center justify-center mb-4">
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="animate-bounce text-primary"
-        >
-          <polyline points="18 15 12 9 6 15"></polyline>
-        </svg>
-      </div>
       <h3 className="text-lg font-medium mb-2">Your diagram is empty</h3>
-      <p className="text-muted-foreground">
+      <p className="text-muted-foreground mb-4">
         Click the "Add Table" button in the toolbar to start designing your
         database
       </p>
+      
+      <div className="flex items-center justify-center mb-4">
+        <span className="text-sm text-muted-foreground">or</span>
+      </div>
+      
+      <div className="flex flex-col gap-3">
+        <Button 
+          onClick={onGenerateFromPrompt}
+          className="w-full"
+          variant="outline"
+        >
+          <Sparkle className="mr-2 h-4 w-4" />
+          Generate from text prompt
+        </Button>
+      </div>
     </div>
   </div>
 );
@@ -127,6 +128,9 @@ function DiagramEditorContent({
   const [isSQLPanelOpen, setSQLPanelOpen] = useState(false);
   const [generatedSQL, setGeneratedSQL] = useState<GeneratedData>(null);
   const [rowCount, setRowCount] = useState(10);
+  
+  // Schema generation dialog state
+  const [isSchemaDialogOpen, setIsSchemaDialogOpen] = useState(false);
 
   const handleRowCountChange = useCallback(
     (value: number) => {
@@ -144,6 +148,23 @@ function DiagramEditorContent({
     },
     [toast]
   );
+
+  const handleOpenSchemaDialog = useCallback(() => {
+    setIsSchemaDialogOpen(true);
+  }, []);
+  
+  const handleGenerateSchema = useCallback((newNodes: Node[], newEdges: Edge[]) => {
+    setNodes(newNodes);
+    setEdges(newEdges);
+    
+    setHasUnsavedChanges(true);
+    
+    setTimeout(() => {
+      if (reactFlowInstance) {
+        reactFlowInstance.fitView({ padding: 0.2, duration: 800 });
+      }
+    }, 100);
+  }, [reactFlowInstance, setNodes, setEdges]);
 
   // Load diagram data when component mounts
   useEffect(() => {
@@ -749,7 +770,7 @@ function DiagramEditorContent({
           </ReactFlow>
 
           {/* Empty diagram message */}
-          {nodes.length === 0 && <EmptyDiagramMessage />}
+          {nodes.length === 0 && <EmptyDiagramMessage onGenerateFromPrompt={handleOpenSchemaDialog} />}
 
           {/* Sidebar toggle button */}
           <Button
@@ -866,6 +887,15 @@ function DiagramEditorContent({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Schema Generation Dialog */}
+      <SchemaGenerationDialog
+        open={isSchemaDialogOpen}
+        onOpenChange={setIsSchemaDialogOpen}
+        onGenerateSchema={handleGenerateSchema}
+        project={project}
+        apiKeyMissing={apiKeyMissing}
+      />
     </div>
   );
 }

@@ -185,7 +185,7 @@ const ProjectSettingsModal = ({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="max-h-[70vh] overflow-y-auto pr-1 space-y-4">
+            <div className="max-h-[70vh] overflow-y-auto space-y-4">
               <FormField
                 control={form.control}
                 name="name"
