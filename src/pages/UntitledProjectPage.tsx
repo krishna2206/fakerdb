@@ -7,7 +7,7 @@ import GeneratingIndicator from "@/components/sections/GeneratingIndicator";
 import { useToast } from "@/components/ui/use-toast";
 import { useApiKey } from "@/hooks/useApiKey";
 import { useAuth } from "@/hooks/useAuth";
-import { generateMultitableData } from "@/services/aiGenerationService";
+import { generateMultitableData } from "@/services/sqlGenerationService";
 import { DatabaseType, GeneratedData, Project } from "@/types/types";
 import { Edge, Node } from "@xyflow/react";
 import { useEffect, useState } from "react";
