@@ -11,6 +11,9 @@ const GEMINI_MODEL = "gemini-2.0-flash-exp";
  * @param useStructuredResponse - Whether to use the structured response feature (default: false)
  * @param responseSchema - Optional JSON schema for structured responses
  * @param systemInstruction - Optional system instruction to guide the model behavior
+ * @param temperature - Controls the randomness of the output (0.0-1.0). Lower values are more deterministic (default: 0.2)
+ * @param topK - Limits token selection to top K possibilities (default: 32)
+ * @param topP - Uses nucleus sampling, considering tokens with top P probability mass (default: 0.95)
  * @returns A Promise that resolves to the generated text string or structured JSON
  * @throws Will throw an error if the API request fails, including the status code and error message
  */
@@ -19,7 +22,10 @@ export async function generateText(
   apiKey: string,
   useStructuredResponse: boolean = false,
   responseSchema?: Record<string, unknown>,
-  systemInstruction?: string
+  systemInstruction?: string,
+  temperature: number = 0.2,
+  topK: number = 32,
+  topP: number = 0.95,
 ) {
   const url = `${BASE_API_URL}/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
 
@@ -34,9 +40,9 @@ export async function generateText(
       },
     ],
     generationConfig: {
-      temperature: 1.5,
-      topK: 32,
-      topP: 0.95,
+      temperature: temperature,
+      topK: topK,
+      topP: topP,
       maxOutputTokens: 8192,
     },
   };

@@ -163,7 +163,8 @@ async function generateDataWithGemini(
     apiKey, 
     true, 
     responseSchema, 
-    SYSTEM_INSTRUCTIONS
+    SYSTEM_INSTRUCTIONS,
+    1.5
   );
 
   if (!result || typeof result !== "object") {

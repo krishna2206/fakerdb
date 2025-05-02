@@ -1,11 +1,21 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/use-toast";
 import { convertSQLToCSV, downloadCSV, downloadMultipleCSVAsZip } from "@/services/csvExportService";
+import { refineSQLWithGemini } from "@/services/sqlRefinementService";
 import { DatabaseType, Project } from "@/types/types";
-import { refineSQLWithGemini } from "@/utils/sqlRefinementUtils";
 import { Copy, Download, FileCode, FileSpreadsheet, Loader2, WandSparkles } from "lucide-react";
 import React, { useState } from "react";
 import SQLHighlighter from "./SQLHighlighter";
@@ -28,6 +38,7 @@ const SQLDisplay: React.FC<SQLDisplayProps> = ({
   const [refinedCreateSQL, setRefinedCreateSQL] = useState<string | null>(null);
   const [refinedInsertSQL, setRefinedInsertSQL] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
 
   const handleCopy = (sql: string, type: string) => {
     navigator.clipboard.writeText(sql);
@@ -104,7 +115,8 @@ const SQLDisplay: React.FC<SQLDisplayProps> = ({
     setIsExporting(true);
     try {
       const currentSQL = getCurrentSQL("insert");
-      const csvByTable = convertSQLToCSV(currentSQL, databaseType);
+      
+      const csvByTable = await convertSQLToCSV(currentSQL, databaseType, project);
       const tableCount = Object.keys(csvByTable).length;
 
       if (tableCount === 0) {
@@ -141,7 +153,7 @@ const SQLDisplay: React.FC<SQLDisplayProps> = ({
       console.error("Error exporting to CSV:", error);
       toast({
         title: "Export failed",
-        description: "Failed to export data to CSV. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to export data to CSV. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -275,7 +287,7 @@ const SQLDisplay: React.FC<SQLDisplayProps> = ({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleCSVExport}
+                        onClick={() => setIsDialogOpen(true)}
                         className="justify-start"
                         disabled={isRefining || isExporting}
                       >
@@ -323,6 +335,21 @@ const SQLDisplay: React.FC<SQLDisplayProps> = ({
           </TabsContent>
         </Tabs>
       </CardContent>
+
+      <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm CSV Export</AlertDialogTitle>
+            <AlertDialogDescription>
+              Exporting data as CSV will cost additional tokens. Do you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCSVExport}>Proceed</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
