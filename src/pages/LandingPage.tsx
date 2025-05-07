@@ -9,13 +9,11 @@ import { FadeIn } from "@/components/ui/fade-in";
 import { useAuth } from "@/hooks/useAuth";
 import {
   BrainCircuit,
-  Check,
-  Database,
-  FileCode, Network,
+  Check, FileCode, Network,
+  PackageOpen,
+  Sparkle,
   Sparkles,
-  Table,
-  Terminal,
-  Zap
+  Table
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import React from "react";
@@ -319,33 +317,33 @@ const LandingPage = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-medium mb-1">
-                      SQL Script Export
+                      Multiple Export Formats
                     </h3>
                     <p className="text-muted-foreground">
-                      Export your schema and test data as ready-to-use SQL
-                      scripts compatible with all major database systems
+                      Export your data as SQL scripts or CSV files, compatible with
+                      all major database systems and spreadsheet applications
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
                   <div className="shrink-0 rounded-full bg-primary/10 p-2">
-                    <Zap className="h-5 w-5 text-primary" />
+                    <Sparkle className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <h3 className="text-lg font-medium mb-1">
-                      Instant Preview
+                      AI Schema Design
                     </h3>
                     <p className="text-muted-foreground">
-                      See your generated test data immediately with instant
-                      previews that help verify the data quality
+                      Transform natural language descriptions into complete database 
+                      schemas with tables and relationships using AI
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
                   <div className="shrink-0 rounded-full bg-primary/10 p-2">
-                    <Database className="h-5 w-5 text-primary" />
+                    <Network className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <h3 className="text-lg font-medium mb-1">
@@ -360,15 +358,15 @@ const LandingPage = () => {
 
                 <div className="flex items-start gap-4">
                   <div className="shrink-0 rounded-full bg-primary/10 p-2">
-                    <Terminal className="h-5 w-5 text-primary" />
+                    <PackageOpen className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <h3 className="text-lg font-medium mb-1">
-                      Custom Data Rules
+                      Ready-to-Use Templates
                     </h3>
                     <p className="text-muted-foreground">
-                      Define custom data generation rules with constraints and
-                      patterns for specialized datasets
+                      Apply pre-built templates for common data types like names,
+                      addresses, and product details with contextually appropriate variations
                     </p>
                   </div>
                 </div>
