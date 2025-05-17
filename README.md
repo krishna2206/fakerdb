@@ -5,24 +5,15 @@ FakerDB is an AI-powered SQL data generator that helps developers create realist
 ## Application Preview
 
 <div align="center">
-  <div style="display: inline-block; margin: 0 10px; vertical-align: top; width: 250px;">
-    <a href="/public/visual-design-dark.png">
-      <img src="/public/visual-design-dark.png" alt="Visual Database Design" width="250"/>
-    </a>
-    <p><b>Visual Database Designer:</b> Create and connect multiple related tables</p>
-  </div>
-  <div style="display: inline-block; margin: 0 10px; vertical-align: top; width: 250px;">
-    <a href="/public/create-sql-dark.png">
-      <img src="/public/create-sql-dark.png" alt="CREATE SQL Statements" width="250"/>
-    </a>
-    <p><b>CREATE SQL:</b> Generate table schema statements in multiple dialects</p>
-  </div>
-  <div style="display: inline-block; margin: 0 10px; vertical-align: top; width: 250px;">
-    <a href="/public/insert-sql-dark.png">
-      <img src="/public/insert-sql-dark.png" alt="INSERT SQL Statements" width="250"/>
-    </a>
-    <p><b>INSERT SQL:</b> AI-generated realistic sample data ready to use</p>
-  </div>
+  <a href="/public/visual-design-dark.png">
+    <img src="/public/visual-design-dark.png" alt="Visual Database Design" width="250"/>
+  </a>
+  <a href="/public/create-sql-dark.png">
+    <img src="/public/create-sql-dark.png" alt="CREATE SQL Statements" width="250"/>
+  </a>
+  <a href="/public/insert-sql-dark.png">
+    <img src="/public/insert-sql-dark.png" alt="INSERT SQL Statements" width="250"/>
+  </a>
 </div>
 
 ## Features
