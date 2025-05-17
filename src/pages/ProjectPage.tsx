@@ -2,41 +2,39 @@ import DiagramEditor from "@/components/diagram/DiagramEditor";
 import AuthModal from "@/components/modals/AuthModal";
 import ProjectSettingsModal from "@/components/modals/ProjectSettingsModal";
 import SettingsModal from "@/components/modals/SettingsModal";
-import GeneratingIndicator from "@/components/sections/GeneratingIndicator";
+import { DatasetView } from "@/components/sections/DatasetView";
+import { ProjectSidebar } from "@/components/sections/ProjectSidebar";
+import { SchemaDesignView } from "@/components/sections/SchemaDesignView";
 import { Button } from "@/components/ui/button";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { useToast } from "@/components/ui/use-toast";
-import { useApiKey } from "@/hooks/useApiKey";
 import { useAuth } from "@/hooks/useAuth";
 import { getProject } from "@/services/projectService";
-import { generateMultitableData } from "@/services/sqlGenerationService";
-import { GeneratedData, Project } from "@/types/types";
-import { Edge, Node } from "@xyflow/react";
+import { Dataset, Project } from "@/types/types";
+import { Edge, Node, ReactFlowProvider, useEdgesState, useNodesState } from "@xyflow/react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 const ProjectPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+
   const { toast } = useToast();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
+
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const [authMode] = useState<"signin" | "signup">("signin");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProjectSettingsOpen, setIsProjectSettingsOpen] = useState(false);
-  const [apiKeyRefresh, setApiKeyRefresh] = useState(0);
-  const { apiKey, isApiKeyExpired } = useApiKey(apiKeyRefresh);
-  const [generatedSQL, setGeneratedSQL] = useState<GeneratedData>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [showIndicator, setShowIndicator] = useState(false);
-  const [showSQLResults, setShowSQLResults] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [currentView, setCurrentView] = useState<"design" | "diagram" | "data" >("diagram");
+  const [datasetsRefreshKey, setDatasetsRefreshKey] = useState(0);
+  const [activeDatasetId, setActiveDatasetId] = useState<string | undefined>(undefined);
 
-  // Check if both global and project API keys are missing
-  const noGlobalKey = !apiKey;
-  const noProjectKey = project && !project.geminiApiKey;
-  const apiKeyMissing = noGlobalKey && noProjectKey;
+  const [diagramNodes, setDiagramNodes, onNodesChange] = useNodesState([]);
+  const [diagramEdges, setDiagramEdges, onEdgesChange] = useEdgesState([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -44,8 +42,6 @@ const ProjectPage = () => {
 
       try {
         setLoading(true);
-
-        // Fetch project details
         const projectData = await getProject(projectId);
         setProject(projectData);
       } catch (error) {
@@ -59,76 +55,56 @@ const ProjectPage = () => {
         setLoading(false);
       }
     };
-
     loadData();
   }, [projectId, isAuthenticated, toast]);
 
-  useEffect(() => {
-    let timer: number;
-    if (isGenerating) {
-      setShowIndicator(true);
-    } else {
-      setShowIndicator(false);
+  const handleDatasetDeleted = (datasetId: string) => {
+    if (activeDatasetId === datasetId) {
+      setActiveDatasetId(undefined);
+      setCurrentView("diagram");
     }
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [isGenerating]);
 
-  const handleProjectSettings = () => {
-    setIsProjectSettingsOpen(true);
+    // Increment the refresh key to trigger dataset reload
+    setDatasetsRefreshKey((prev) => prev + 1);
   };
 
-  const handleProjectUpdated = (updatedProject: Project) => {
-    setProject(updatedProject);
+  const handleProjectSettings = () => setIsProjectSettingsOpen(true);
+  const handleProjectUpdated = (updatedProject: Project) => setProject(updatedProject);
+  const handleProjectDeleted = () => navigate("/projects");
+  const handleToggleSidebar = () => setSidebarExpanded((prev) => !prev);
+
+  const handleViewChange = (view: "diagram" | "data" | "design", datasetId?: string) => {
+    setCurrentView(view);
+    if (datasetId) {
+      setActiveDatasetId(datasetId);
+    }
   };
 
-  const handleGenerateSQL = async (
-    nodes: Node[],
-    edges: Edge[],
-    rowCount: number = 10
-  ): Promise<GeneratedData> => {
-    if (!project) return null;
+  const handleDatasetGenerated = (dataset: Dataset) => {
+    // Increase the delay to ensure PocketBase has time to process the request
+    // and the dataset is available in the database
+    setTimeout(() => {
+      // First increase the refresh key to trigger data reload
+      setDatasetsRefreshKey((prev) => prev + 1);
 
-    setIsGenerating(true);
-    setShowSQLResults(false);
+      // Then set the active dataset and view
+      // This ensures the sidebar will show the dataset as active
+      setTimeout(() => {
+        setActiveDatasetId(dataset.id);
+        setCurrentView("data");
+      }, 50);
+    }, 500);
+  };
 
-    try {
-      const sql = await generateMultitableData(
-        project.id,
-        project.databaseType,
-        nodes,
-        edges,
-        rowCount
-      );
-
-      setGeneratedSQL(sql);
-      setShowSQLResults(true);
-
-      toast({
-        title: "SQL Generated",
-        description: "SQL code has been successfully generated",
-      });
-      
-      // Return the SQL data for the slide-up panel
-      return sql;
-    } catch (error) {
-      console.error("Error generating SQL:", error);
-      toast({
-        title: "Generation Failed",
-        description: "An error occured when generating SQL.",
-        variant: "destructive",
-      });
-      return null;
-    } finally {
-      setIsGenerating(false);
-    }
+  const handleGenerateSchema = (nodes: Node[], edges: Edge[]) => {
+    setDiagramNodes(nodes);
+    setDiagramEdges(edges);
+    
+    setCurrentView("diagram");
   };
 
   if (loading) {
-    return (
-      <LoadingSpinner />
-    );
+    return <LoadingSpinner />;
   }
 
   if (!project) {
@@ -144,32 +120,58 @@ const ProjectPage = () => {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      <div className="flex-grow flex flex-col overflow-hidden">
-        <DiagramEditor
-          project={project}
-          apiKeyMissing={apiKeyMissing}
-          onOpenSettings={() => setIsSettingsOpen(true)}
+      <div className="flex-grow flex flex-row overflow-hidden">
+        <ProjectSidebar
+          expanded={sidebarExpanded}
+          currentView={currentView}
+          onToggle={handleToggleSidebar}
+          onViewChange={handleViewChange}
           onOpenProjectSettings={handleProjectSettings}
-          onGenerateSQL={handleGenerateSQL}
-          user={user}
+          projectId={projectId}
+          refreshKey={datasetsRefreshKey}
           onLogout={() => logout(() => navigate("/"))}
+          onOpenUserSettings={() => setIsSettingsOpen(true)}
+          onSignIn={() => setIsAuthOpen(true)}
+          activeDatasetId={activeDatasetId}
+          onDatasetDeleted={handleDatasetDeleted}
         />
 
-        {isGenerating && (
-          <div 
-            className={`absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 transition-all duration-200 ease-in-out ${
-              showIndicator ? 'opacity-100' : 'opacity-0 backdrop-blur-none'
-            }`}
-          >
-            <div className={`transition-opacity duration-500 ease-in-out ${showIndicator ? 'opacity-100' : 'opacity-0'}`}>
-              <GeneratingIndicator
-                message={`Generating SQL for ${
-                  project?.databaseType || "database"
-                }`}
+        <div className="flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out">
+          <ReactFlowProvider>
+            {currentView === "diagram" && (
+              <DiagramEditor
+                project={project}
+                onOpenSettings={() => setIsSettingsOpen(true)}
+                onOpenProjectSettings={handleProjectSettings}
+                onDatasetGenerated={handleDatasetGenerated}
+                onSignIn={() => setIsAuthOpen(true)}
+                nodes={diagramNodes}
+                edges={diagramEdges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                setNodes={setDiagramNodes}
+                setEdges={setDiagramEdges}
               />
-            </div>
-          </div>
-        )}
+            )}
+
+            {currentView === "data" && (
+              <DatasetView
+                project={project}
+                datasetId={activeDatasetId}
+                onDatasetUpdated={() => setDatasetsRefreshKey((prev) => prev + 1)}
+              />
+            )}
+
+            {currentView === "design" && (
+              <SchemaDesignView
+                project={project}
+                existingNodesCount={diagramNodes.length}
+                onGenerateSchema={handleGenerateSchema}
+                onBackToDiagram={() => setCurrentView("diagram")}
+              />
+            )}
+          </ReactFlowProvider>
+        </div>
       </div>
 
       <AuthModal
@@ -177,20 +179,13 @@ const ProjectPage = () => {
         onOpenChange={setIsAuthOpen}
         initialMode={authMode}
       />
-      <SettingsModal
-        open={isSettingsOpen}
-        onOpenChange={setIsSettingsOpen}
-        onSettingsSaved={() => setApiKeyRefresh((prev) => prev + 1)}
-      />
+      <SettingsModal open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
       <ProjectSettingsModal
         open={isProjectSettingsOpen}
         onOpenChange={setIsProjectSettingsOpen}
         project={project}
         onProjectUpdated={handleProjectUpdated}
-        onProjectDeleted={(projectId) => {
-          // Navigate back to projects list when the current project is deleted
-          navigate("/projects");
-        }}
+        onProjectDeleted={handleProjectDeleted}
       />
     </div>
   );

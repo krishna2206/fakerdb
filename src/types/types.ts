@@ -1,7 +1,7 @@
 // Template categories
-export type TemplateCategory = 
-  | "Person" 
-  | "Date" 
+export type TemplateCategory =
+  | "Person"
+  | "Date"
   | "Internet"
   | "Phone"
   | "Animal"
@@ -14,12 +14,12 @@ export type TemplateCategory =
   | "Vehicle";
 
 // Template variation types
-export type TemplateVariationType = 
-  | "Country" 
+export type TemplateVariationType =
+  | "Country"
   | "Provider"
-  | "Format" 
-  | "Source" 
-  | "Age Range" 
+  | "Format"
+  | "Source"
+  | "Age Range"
   | "Gender"
   | "Style"
   | "Field"
@@ -133,7 +133,23 @@ export interface TableDefinition {
 export interface GeneratedData {
   createTableSQL?: string;
   insertDataSQL?: string;
-  rawData?: TableRowData[] | string[];
+}
+
+export interface Dataset {
+  id: string;
+  diagramId: string;
+  projectId?: string; // Added for convenience when joining with diagrams
+  createTableSQL: string;
+  insertDataSQL: string;
+  tableCount: number;
+  rowCount: number;
+  created: string;
+  updated: string;
+}
+
+export interface SQLEditResult {
+  updatedSQL: string;
+  modifiedLines: number[];
 }
 
 export interface GeminiRequestBody {

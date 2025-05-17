@@ -5,7 +5,6 @@ import { getApiKey } from "@/utils/apiKeyUtils";
 import { needsLength } from "@/utils/fieldTypesUtils";
 import { Edge, Node } from "@xyflow/react";
 
-// System instruction for random data generation
 const SYSTEM_INSTRUCTIONS = `
 You are an expert SQL data generator specializing in truly random data generation. Follow these strict rules:
 
@@ -96,7 +95,6 @@ export async function generateMultitableData(
       tableRelations
     );
 
-    // Use the dedicated function to generate data with Gemini
     return await generateDataWithGemini(
       project,
       databaseType,
@@ -133,7 +131,6 @@ async function generateDataWithGemini(
   apiKey: string,
   rowCount: number = 10
 ): Promise<GeneratedData> {
-  // Generate the prompt using the dedicated function
   const prompt = createMultitablePrompt(
     project,
     databaseType,
@@ -178,7 +175,6 @@ async function generateDataWithGemini(
   return {
     createTableSQL: result.createTableSQL,
     insertDataSQL: result.insertDataSQL,
-    rawData: null,
   };
 }
 
@@ -375,7 +371,6 @@ function createMultitablePrompt(
 3. For foreign key fields, use only valid primary key values from the referenced tables
 4. Make the relationship data logical and consistent with the table context`;
 
-  // Update output format instructions to specify we want separate CREATE and INSERT statements
   prompt += `\n\nPlease generate the following in separate sections:
 1. Complete CREATE TABLE statements with proper primary keys, foreign keys, and constraints
 2. Add appropriate indexes for performance

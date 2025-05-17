@@ -76,3 +76,25 @@ export const getProjectDiagram = async (projectId: string): Promise<DiagramData 
     throw error;
   }
 };
+
+/**
+ * Fetches a project's diagram ID from the database.
+ * @param projectId - The ID of the project to fetch the diagram ID for.
+ * @returns A promise resolving to the diagram ID or null if no diagram exists.
+ */
+export const getProjectDiagramId = async (projectId: string): Promise<string | null> => {
+  try {
+    const diagrams = await pb.collection('diagrams').getList(1, 1, {
+      filter: `projectId = "${projectId}"`,
+    });
+    
+    if (diagrams.totalItems === 0) {
+      return null;
+    }
+    
+    return diagrams.items[0].id;
+  } catch (error) {
+    console.error(`Error fetching diagram ID for project ${projectId}:`, error);
+    throw error;
+  }
+};

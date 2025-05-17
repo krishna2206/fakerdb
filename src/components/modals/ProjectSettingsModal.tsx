@@ -168,11 +168,6 @@ const ProjectSettingsModal = ({
     setConfirmProjectName("");
   };
 
-  // Helper function to get database icon based on type
-  const getDatabaseIcon = (type: string) => {
-    return <DatabaseIcon className="h-4 w-4 mr-2" />;
-  };
-
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
@@ -233,7 +228,7 @@ const ProjectSettingsModal = ({
                     </div>
                     <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
                       <div className="flex items-center gap-2">
-                        {getDatabaseIcon(field.value)}
+                        <DatabaseIcon className="h-4 w-4 mr-2" />
                         <span>{field.value}</span>
                       </div>
                     </div>

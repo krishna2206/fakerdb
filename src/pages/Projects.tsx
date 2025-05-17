@@ -100,10 +100,6 @@ const Projects = () => {
     return () => clearTimeout(delaySearch);
   }, [searchTerm]);
 
-  const handleSettingsSaved = () => {
-    loadProjects();
-  };
-
   // Project handlers
   const handleCreateProject = () => {
     setIsAddProjectModalOpen(true);
@@ -206,7 +202,6 @@ const Projects = () => {
               />
               <Button
                 type="submit"
-                // disabled={isSearching}
                 className="absolute right-0 rounded-l-none h-10"
                 variant="default"
               >
@@ -325,7 +320,6 @@ const Projects = () => {
       <SettingsModal
         open={isSettingsModalOpen}
         onOpenChange={setIsSettingsModalOpen}
-        onSettingsSaved={handleSettingsSaved}
       />
       <ProjectSettingsModal
         open={isProjectSettingsOpen}

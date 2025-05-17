@@ -1,23 +1,23 @@
 import { Button } from "@/components/ui/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { useApiKey } from '@/hooks/useApiKey';
+import { useApiKey } from '@/contexts/ApiKeyContext';
 import { InfoIcon, Monitor, MoonIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import React, { useEffect, useState } from "react";
@@ -25,7 +25,6 @@ import React, { useEffect, useState } from "react";
 export interface SettingsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSettingsSaved: () => void;
 }
 
 // Key expiration options in seconds
@@ -47,13 +46,12 @@ const THEME_OPTIONS = [
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   open,
   onOpenChange,
-  onSettingsSaved,
 }) => {
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [expirationTime, setExpirationTime] = useState("604800"); // Default: 7 days
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
-  const { saveApiKey } = useApiKey();
+  const { saveApiKey, refreshApiKey } = useApiKey();
 
   // Fetch saved settings on component mount
   useEffect(() => {
@@ -68,16 +66,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleSaveSettings = () => {
     saveApiKey(apiKeyInput.trim(), expirationTime);
-
+    
+    refreshApiKey();
+    
     onOpenChange(false);
 
-    setTimeout(() => {
-      toast({
-        title: "Settings saved",
-        description: "Your settings have been saved successfully.",
-      });
-      onSettingsSaved();
-    }, 100);
+    toast({
+      title: "Settings saved",
+      description: "Your settings have been saved successfully.",
+    });
   };
 
   return (

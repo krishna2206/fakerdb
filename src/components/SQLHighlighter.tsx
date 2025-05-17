@@ -24,7 +24,7 @@ interface Token {
 }
 
 // Function to highlight SQL code
-export const highlightSQL = (sql: string): React.ReactNode => {
+const highlightSQL = (sql: string): React.ReactNode => {
   const tokens = tokenizeSQL(sql);
   
   return tokens.map((token, index) => {
@@ -488,12 +488,36 @@ const getTokenClassName = (tokenType: TokenType): string => {
 interface SQLHighlighterProps {
   sql: string;
   className?: string;
+  highlightedLines?: number[];
 }
 
-const SQLHighlighter: React.FC<SQLHighlighterProps> = ({ sql, className = '' }) => {
+const SQLHighlighter: React.FC<SQLHighlighterProps> = ({ 
+  sql, 
+  className = '',
+  highlightedLines = [] 
+}) => {
+  const lines = sql.split('\n');
+  
   return (
     <pre className={`p-4 bg-muted rounded-md text-sm ${className}`} style={{ width: '100%' }}>
-      <code className="whitespace-pre-wrap break-words">{highlightSQL(sql)}</code>
+      <code className="whitespace-pre-wrap break-words">
+        {lines.map((line, index) => (
+          <div 
+            key={index}
+            className={
+              highlightedLines.includes(index) 
+                ? "bg-green-100 dark:bg-green-900/50 relative" 
+                : ""
+            }
+          >
+            {highlightSQL(line)}
+            {index < lines.length - 1 && '\n'}
+            {highlightedLines.includes(index) && (
+              <span className="absolute left-0 top-0 bottom-0 w-1 bg-green-500 dark:bg-green-600" />
+            )}
+          </div>
+        ))}
+      </code>
     </pre>
   );
 };

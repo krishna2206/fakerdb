@@ -10,14 +10,9 @@ const RELATIONSHIP_TYPES = {
   "many-to-many": "Many-to-Many (N:M)",
 };
 
-interface NodeData {
-  name: string;
-  [key: string]: string | number | boolean | object | undefined;
-}
-
 interface RelationshipSidebarProps {
   edge: Edge;
-  nodes: Node<NodeData>[];
+  nodes: Node[];
   removeEdge: (edgeId: string) => void;
   onClose: () => void;
 }
@@ -58,14 +53,14 @@ const RelationshipSidebar: React.FC<RelationshipSidebarProps> = ({
           <div className="text-sm">
             <strong className="block mb-1">From:</strong>
             <span>
-              {nodes.find((n) => n.id === edge.source)?.data.name || "Unknown"}.
+              {nodes.find((n) => n.id === edge.source)?.data?.name as string || "Unknown"}.
               {edge.sourceHandle.split("-")[0]}
             </span>
           </div>
           <div className="text-sm mt-3">
             <strong className="block mb-1">To:</strong>
             <span>
-              {nodes.find((n) => n.id === edge.target)?.data.name || "Unknown"}.
+              {nodes.find((n) => n.id === edge.target)?.data?.name as string || "Unknown"}.
               {edge.targetHandle.split("-")[0]}
             </span>
           </div>

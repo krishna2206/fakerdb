@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { ApiKeyProvider } from "./contexts/ApiKeyContext";
 import Index from "./pages/Index";
 import Lab from "./pages/Lab";
 import NotFound from "./pages/NotFound";
@@ -11,7 +12,6 @@ import Projects from "./pages/Projects";
 import ThemePreview from "./pages/ThemePreview";
 import UntitledProjectPage from "./pages/UntitledProjectPage";
 
-// Main app router
 const AppRouter = () => {
   return (
     <Routes>
@@ -35,10 +35,12 @@ const AppRouter = () => {
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
     <TooltipProvider>
-      <Toaster />
-      <BrowserRouter>
-        <AppRouter />
-      </BrowserRouter>
+      <ApiKeyProvider>
+        <Toaster />
+        <BrowserRouter>
+          <AppRouter />
+        </BrowserRouter>
+      </ApiKeyProvider>
     </TooltipProvider>
   </ThemeProvider>
 );

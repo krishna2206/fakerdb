@@ -6,7 +6,7 @@ interface GeneratingIndicatorProps {
 
 export default function GeneratingIndicator({ message = "Generating SQL" }: GeneratingIndicatorProps) {
   return (
-    <div className="py-12 flex flex-col items-center justify-center gap-4 w-full">
+    <div className="py-8 flex flex-col items-center justify-center gap-4 w-full">
       <div className="flex items-center justify-center w-full">
         <DotLottieReact
           src="/animations/sparkles.lottie"
@@ -15,7 +15,7 @@ export default function GeneratingIndicator({ message = "Generating SQL" }: Gene
           className="h-34 w-34 mx-auto"
         />
       </div>
-      <p className="text-lg font-medium text-muted-foreground">{message}</p>
+      <h3 className="text-xl font-semibold mb-2">{message}</h3>
       <p className="text-sm text-muted-foreground">This may take a moment.</p>
     </div>
   );

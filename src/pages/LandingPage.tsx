@@ -214,7 +214,7 @@ const LandingPage = () => {
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="h-5 w-5 text-primary mt-0.5" />
-                      <span>Export your schema as SQL DDL statements</span>
+                      <span>Export your schema as SQL DDL statements or CSV files</span>
                     </li>
                   </ul>
                 </div>
@@ -294,7 +294,7 @@ const LandingPage = () => {
                     <li className="flex items-start gap-2">
                       <Check className="h-5 w-5 text-primary mt-0.5" />
                       <span>
-                        Export ready-to-use SQL scripts for any database system
+                        Export ready-to-use SQL scripts or CSV files for any database system
                       </span>
                     </li>
                   </ul>
@@ -565,7 +565,7 @@ const LandingPage = () => {
                       4. Export & Populate
                     </h3>
                     <p className="text-muted-foreground">
-                      Download SQL scripts and use them to quickly populate your
+                      Download SQL scripts or CSV files and use them to quickly populate your
                       database with quality test data
                     </p>
                   </div>
@@ -617,7 +617,6 @@ const LandingPage = () => {
       <SettingsModal
         open={isSettingsOpen}
         onOpenChange={setIsSettingsOpen}
-        onSettingsSaved={() => {}}
       />
     </>
   );

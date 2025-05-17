@@ -1,12 +1,17 @@
+import GeneratingIndicator from "@/components/sections/GeneratingIndicator";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { MAX_ROW_COUNT } from "@/constants";
-import { AuthUser } from "@/hooks/useAuth";
+import { useApiKey } from "@/contexts/ApiKeyContext";
+import { useAuth } from "@/hooks/useAuth";
+import { saveDataset } from "@/services/datasetService";
 import {
   getProjectDiagram,
+  getProjectDiagramId,
   saveProjectDiagram,
 } from "@/services/diagramService";
-import { GeneratedData, Project, TableField } from "@/types/types";
+import { generateMultitableData } from "@/services/sqlGenerationService";
+import { Dataset, Project, TableField } from "@/types/types";
 import {
   convertFieldType,
   supportsAutoIncrement,
@@ -23,27 +28,26 @@ import {
   MiniMap,
   Node,
   NodeTypes,
-  Panel,
+  OnEdgesChange,
+  OnNodesChange,
   ReactFlow,
   ReactFlowProvider,
-  useEdgesState,
-  useNodesState,
   useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Code, Sparkle } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useScreenshot } from "use-react-screenshot";
 import ApiKeyAlert from "../alerts/ApiKeyAlert";
 import WorkspaceAlert from "../alerts/WorkspaceAlert";
-import SQLDisplay from "../SQLDisplay";
+import { FadeIn } from "../ui/fade-in";
+import DiagramFloatingToolbar from "./DiagramFloatingToolbar";
 import DiagramSidebar from "./DiagramSidebar";
-import DiagramToolbar from "./DiagramToolbar";
+import FloatingHeader from "./FloatingHeader";
 import RelationshipEdge from "./RelationshipEdge";
 import RelationshipSidebar from "./RelationshipSidebar";
-import { SchemaGenerationDialog } from "./SchemaGenerationDialog";
 import TableNode from "./TableNode";
 
 const nodeTypes: NodeTypes = {
@@ -54,7 +58,7 @@ const edgeTypes: EdgeTypes = {
   relationshipEdge: RelationshipEdge,
 };
 
-const EmptyDiagramMessage = ({ onGenerateFromPrompt }: { onGenerateFromPrompt: () => void }) => (
+const EmptyDiagramMessage = () => (
   <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-4 p-6 max-w-md text-center z-10">
     <div className="bg-muted/70 border border-border rounded-xl px-6 py-8 shadow-sm backdrop-blur-sm">
       <h3 className="text-lg font-medium mb-2">Your diagram is empty</h3>
@@ -62,75 +66,58 @@ const EmptyDiagramMessage = ({ onGenerateFromPrompt }: { onGenerateFromPrompt: (
         Click the "Add Table" button in the toolbar to start designing your
         database
       </p>
-      
-      <div className="flex items-center justify-center mb-4">
-        <span className="text-sm text-muted-foreground">or</span>
-      </div>
-      
-      <div className="flex flex-col gap-3">
-        <Button 
-          onClick={onGenerateFromPrompt}
-          className="w-full"
-          variant="outline"
-        >
-          <Sparkle className="mr-2 h-4 w-4" />
-          Generate from text prompt
-        </Button>
-      </div>
     </div>
   </div>
 );
 
 interface DiagramEditorProps {
   project: Project;
-  apiKeyMissing?: boolean;
   onOpenSettings: () => void;
   onOpenProjectSettings: () => void;
-  onGenerateSQL: (
-    nodes: Node[],
-    edges: Edge[],
-    rowCount?: number
-  ) => Promise<GeneratedData>;
-  user?: AuthUser;
-  onLogout?: () => void;
-  isUnauthenticated?: boolean;
   onSignIn?: () => void;
-  onSignUp?: () => void;
+  onDatasetGenerated?: (dataset: Dataset) => void;
+  nodes: Node[];
+  edges: Edge[];
+  onNodesChange: OnNodesChange;
+  onEdgesChange: OnEdgesChange;
+  setNodes: React.Dispatch<React.SetStateAction<Node[]>>;
+  setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
 }
 
-// Main component that will be exported
 function DiagramEditorContent({
   project,
-  apiKeyMissing,
   onOpenSettings,
   onOpenProjectSettings,
-  onGenerateSQL,
-  user,
-  onLogout,
-  isUnauthenticated,
   onSignIn,
-  onSignUp,
+  onDatasetGenerated,
+  nodes,
+  edges,
+  onNodesChange,
+  onEdgesChange,
+  setNodes,
+  setEdges,
 }: DiagramEditorProps) {
-  const navigate = useNavigate();
+  const { apiKey } = useApiKey();
   const { toast } = useToast();
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const reactFlowInstance = useReactFlow();
   const [, takeScreenshot] = useScreenshot();
 
-  const [isSQLPanelOpen, setSQLPanelOpen] = useState(false);
-  const [generatedSQL, setGeneratedSQL] = useState<GeneratedData>(null);
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [rowCount, setRowCount] = useState(10);
-  
-  // Schema generation dialog state
-  const [isSchemaDialogOpen, setIsSchemaDialogOpen] = useState(false);
+
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+
+  const noGlobalKey = !apiKey;
+  const noProjectKey = project && !project.geminiApiKey;
+  const apiKeyMissing = noGlobalKey && noProjectKey;
+  const isUnauthenticated = !isAuthenticated;
 
   const handleRowCountChange = useCallback(
     (value: number) => {
@@ -149,60 +136,16 @@ function DiagramEditorContent({
     [toast]
   );
 
-  const handleOpenSchemaDialog = useCallback(() => {
-    setIsSchemaDialogOpen(true);
-  }, []);
-  
-  const handleGenerateSchema = useCallback((newNodes: Node[], newEdges: Edge[]) => {
-    setNodes(newNodes);
-    setEdges(newEdges);
-    
-    setHasUnsavedChanges(true);
-    
-    setTimeout(() => {
-      if (reactFlowInstance) {
-        reactFlowInstance.fitView({ padding: 0.2, duration: 800 });
-      }
-    }, 100);
-  }, [reactFlowInstance, setNodes, setEdges]);
-
-  // Load diagram data when component mounts
-  useEffect(() => {
-    const loadDiagram = async () => {
-      try {
-        if (project.id) {
-          const diagramData = await getProjectDiagram(project.id);
-
-          if (
-            diagramData &&
-            diagramData.nodes &&
-            diagramData.nodes.length > 0
-          ) {
-            setNodes(diagramData.nodes);
-            setEdges(diagramData.edges || []);
-          } else {
-            // If no saved diagram, set empty state
-            setNodes([]);
-            setEdges([]);
-          }
-        }
-      } catch (error) {
-        console.error("Error loading diagram:", error);
-        // Set empty state
-        setNodes([]);
-      }
-    };
-
-    loadDiagram();
-  }, [project.id]);
-
-  // Mark changes as unsaved when nodes or edges change
-  useEffect(() => {
-    setHasUnsavedChanges(true);
-  }, [nodes, edges]);
-
   const onConnect = useCallback(
     (params: Connection) => {
+      const showErrorToast = (title: string, description: string) => {
+        toast({
+          title,
+          description,
+          variant: "destructive",
+        });
+      };
+      
       // Helper functions to check connection validity
       const isValidConnection = (params: Connection) => {
         // Check for self-connections
@@ -314,15 +257,6 @@ function DiagramEditorContent({
         return true;
       };
 
-      // Helper function to show error toasts
-      const showErrorToast = (title: string, description: string) => {
-        toast({
-          title,
-          description,
-          variant: "destructive",
-        });
-      };
-
       if (!isValidConnection(params)) {
         return;
       }
@@ -333,10 +267,10 @@ function DiagramEditorContent({
       // Extract source and target fields
       const sourceFieldName = params.sourceHandle.split("-")[0];
       const targetFieldName = params.targetHandle.split("-")[0];
-      const sourceField = sourceNode.data.fields.find(
+      const sourceField = (sourceNode.data.fields as TableField[]).find(
         (field: TableField) => field.name === sourceFieldName
       );
-      const targetField = targetNode.data.fields.find(
+      const targetField = (targetNode.data.fields as TableField[]).find(
         (field: TableField) => field.name === targetFieldName
       );
 
@@ -375,11 +309,9 @@ function DiagramEditorContent({
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
-      // First check if we're clicking on the same node
       if (selectedNode && selectedNode.id === node.id) {
-        return; // No need to update if it's the same node
+        return;
       }
-
       setSelectedNode(node);
       setSelectedEdge(null);
       setSidebarOpen(true);
@@ -402,7 +334,6 @@ function DiagramEditorContent({
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((prev) => !prev);
     if (!isSidebarOpen) {
-      // When opening the sidebar without a selection
       setSelectedNode(null);
       setSelectedEdge(null);
     }
@@ -416,46 +347,33 @@ function DiagramEditorContent({
 
   const addNewTable = useCallback(() => {
     const newId = `table_${Date.now()}`;
-
-    // Default position (in case there are no nodes)
     let positionX = 250;
     let positionY = 100;
-
-    // Table node dimensions (approximate)
     const TABLE_WIDTH = 220;
     const TABLE_HEIGHT = 200;
     const SPACING = 50;
 
-    // Get last node position to place next to it
     if (nodes.length > 0) {
       const lastNode = nodes[nodes.length - 1];
-
-      // Start by positioning to the right of the last node
       positionX = lastNode.position.x + TABLE_WIDTH + SPACING;
       positionY = lastNode.position.y;
 
-      // If we're getting too far to the right, create a new row
-      const MAX_X = 2000; // prevent nodes from going too far right
+      const MAX_X = 2000;
       if (positionX > MAX_X) {
         positionX = 250;
-        // Find the maximum Y to start a new row below all existing nodes
         const maxY = Math.max(
           ...nodes.map((node) => node.position.y + TABLE_HEIGHT)
         );
         positionY = maxY + SPACING;
       }
 
-      // Check for overlaps with any existing node
       let hasOverlap = true;
       let attemptCount = 0;
       const MAX_ATTEMPTS = 10;
 
       while (hasOverlap && attemptCount < MAX_ATTEMPTS) {
         hasOverlap = false;
-
-        // Check if the new position overlaps with any existing node
         for (const node of nodes) {
-          // Simple bounding box overlap check
           const overlap = !(
             positionX + TABLE_WIDTH < node.position.x ||
             positionX > node.position.x + TABLE_WIDTH ||
@@ -465,26 +383,20 @@ function DiagramEditorContent({
 
           if (overlap) {
             hasOverlap = true;
-
-            // Move to the right on initial attempts
             if (attemptCount < 3) {
               positionX += TABLE_WIDTH / 2;
             } else if (attemptCount < 6) {
-              // Then try moving down a bit
               positionX = node.position.x;
               positionY += TABLE_HEIGHT + SPACING;
             } else {
-              // Last resort: move to a slightly random position, but still arranged
               positionX = 250 + Math.random() * 100;
               positionY =
                 Math.max(...nodes.map((n) => n.position.y + TABLE_HEIGHT)) +
                 SPACING;
             }
-
             break;
           }
         }
-
         attemptCount++;
       }
     }
@@ -516,15 +428,10 @@ function DiagramEditorContent({
       },
     };
 
-    // Update nodes state
     setNodes((nds) => [...nds, newNode]);
-
-    // Select the new node and open sidebar
     setTimeout(() => {
       setSelectedNode(newNode);
       setSidebarOpen(true);
-
-      // Scroll the node into view if it's outside the visible area
       if (reactFlowInstance) {
         reactFlowInstance.fitView({
           nodes: [newNode],
@@ -533,13 +440,8 @@ function DiagramEditorContent({
         });
       }
     }, 50);
-
-    toast({
-      title: "New table added",
-      description: "Click on the table to edit its properties",
-    });
     setHasUnsavedChanges(true);
-  }, [nodes, setNodes, toast, reactFlowInstance]);
+  }, [nodes, setNodes, reactFlowInstance, project.databaseType]);
 
   const updateNodeData = useCallback(
     (
@@ -613,25 +515,17 @@ function DiagramEditorContent({
         let previewImage = "/placeholder-diagram.svg";
 
         if (nodes.length > 0) {
-          // Reset viewport to ensure we capture the whole diagram
-          reactFlowInstance.fitView({ padding: 0.2 });
-
-          // Wait a moment for viewport to update
+          reactFlowInstance.fitView({ padding: 0.5 });
           await new Promise((resolve) => setTimeout(resolve, 100));
-
           try {
-            // Use the react-screenshot library to capture the diagram
             const reactFlowContainer = document.querySelector(".react-flow");
-
             if (reactFlowContainer) {
-              // Take screenshot of the flow container
               previewImage =
                 (await takeScreenshot(reactFlowContainer)) ||
                 "/placeholder-diagram.svg";
             }
           } catch (err) {
             console.error("Error capturing diagram preview:", err);
-            // Fall back to default image
             previewImage = "/placeholder-diagram.svg";
           }
         }
@@ -667,34 +561,98 @@ function DiagramEditorContent({
 
     setIsGenerating(true);
     try {
-      // Pass rowCount as an additional parameter
-      const result = await onGenerateSQL(nodes, edges, rowCount);
+      // For unauthenticated users with temp project, we pass null instead of project.id
+      // This will prevent the generateMultitableData function from trying to fetch project-specific data
+      const projectId = project.id === "temp" ? null : project.id;
+
+      const result = await generateMultitableData(
+        projectId,
+        project.databaseType,
+        nodes,
+        edges,
+        rowCount
+      );
+
       if (result && typeof result === "object" && "createTableSQL" in result) {
-        setGeneratedSQL(result);
-        setSQLPanelOpen(true);
+        // Handle unauthenticated/temporary project case
+        if (project.id === "temp") {
+          if (onDatasetGenerated) {
+            const tempDataset = {
+              id: "temp-" + Date.now(),
+              diagramId: "temp",
+              createTableSQL: result.createTableSQL,
+              insertDataSQL: result.insertDataSQL,
+              tableCount: nodes.length,
+              rowCount: rowCount,
+              created: new Date().toISOString(),
+              updated: new Date().toISOString()
+            };
+
+            onDatasetGenerated(tempDataset);
+            
+            toast({
+              title: "SQL generated successfully",
+              description: "Your SQL has been generated and is ready to view",
+            });
+          }
+        } else {
+          // Handle authenticated user case - save to database
+          await saveDiagram();
+          
+          const diagramId = await getProjectDiagramId(project.id);
+          if (!diagramId) {
+            throw new Error("No diagram found for this project");
+          }
+
+          const savedDataset = await saveDataset(
+            diagramId,
+            result,
+            nodes.length,
+            rowCount
+          );
+
+          if (onDatasetGenerated) {
+            onDatasetGenerated(savedDataset);
+          }
+
+          toast({
+            title: "SQL generated successfully",
+            description: "Switching to the dataset view to explore your data",
+          });
+        }
       }
     } catch (error) {
       console.error("Error generating SQL:", error);
+
+      toast({
+        title: "Generation failed",
+        description: "There was a problem generating SQL",
+        variant: "destructive",
+      });
     } finally {
       setIsGenerating(false);
     }
-  }, [nodes, edges, apiKeyMissing, onGenerateSQL, rowCount, toast]);
-
-  const toggleSQLPanel = useCallback(() => {
-    setSQLPanelOpen((prev) => !prev);
-  }, []);
+  }, [
+    project.id,
+    project.databaseType,
+    nodes,
+    edges,
+    rowCount,
+    apiKeyMissing,
+    toast,
+    onDatasetGenerated,
+    saveDiagram,
+  ]);
 
   const handleBack = useCallback(() => {
     if (hasUnsavedChanges) {
-      const confirm = window.confirm(
+      const confirmLeave = window.confirm(
         "You have unsaved changes. Are you sure you want to leave?"
       );
-      if (!confirm) {
+      if (!confirmLeave) {
         return;
       }
     }
-    
-    // Navigate to the appropriate page based on authentication status
     if (isUnauthenticated) {
       navigate("/");
     } else {
@@ -702,29 +660,63 @@ function DiagramEditorContent({
     }
   }, [hasUnsavedChanges, navigate, isUnauthenticated]);
 
+  // Effects
+  useEffect(() => {
+    const loadDiagram = async () => {
+      try {
+        // Skip loading if we already have nodes (from schema generation)
+        if (nodes.length > 0) {
+          setTimeout(() => {
+            reactFlowInstance.fitView({ padding: 0.5, duration: 600 });
+          }, 250);
+          return;
+        }
+
+        if (project.id) {
+          if (project.id === "temp") {
+            return;
+          }
+
+          const diagramData = await getProjectDiagram(project.id);
+          if (
+            diagramData &&
+            diagramData.nodes &&
+            diagramData.nodes.length > 0
+          ) {
+            setNodes(diagramData.nodes);
+            setEdges(diagramData.edges || []);
+          } else {
+            setNodes([]);
+            setEdges([]);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading diagram:", error);
+        setNodes([]);
+        setEdges([]);
+      }
+    };
+    loadDiagram();
+  }, [project.id, setNodes, setEdges, nodes.length, reactFlowInstance]);
+
+  useEffect(() => {
+    // Only set unsaved changes if there are nodes or edges,
+    // to avoid marking as unsaved on initial load of an empty diagram.
+    if (nodes.length > 0 || edges.length > 0) {
+      setHasUnsavedChanges(true);
+    }
+  }, [nodes, edges]);
+
   return (
-    <div className="flex flex-col h-full relative">
-      <DiagramToolbar
+    <div
+      className={`flex flex-col h-full relative${
+        isGenerating ? " pointer-events-none" : ""
+      }`}
+    >
+      <FloatingHeader
         projectName={project.name || ""}
         databaseType={project.databaseType}
-        hasUnsavedChanges={hasUnsavedChanges}
-        isGenerating={isGenerating}
-        isSaving={isSaving}
-        apiKeyMissing={apiKeyMissing}
-        user={user}
-        rowCount={rowCount}
-        onRowCountChange={handleRowCountChange}
         onBack={handleBack}
-        onAddTable={addNewTable}
-        onSave={saveDiagram}
-        onGenerateSQL={handleGenerateSQL}
-        onOpenProjectSettings={onOpenProjectSettings}
-        onOpenSettings={onOpenSettings}
-        onLogout={onLogout}
-        onSignIn={onSignIn}
-        onSignUp={onSignUp}
-        isUnauthenticated={isUnauthenticated}
-        nodesCount={nodes.length}
       />
 
       {/* React Flow */}
@@ -749,8 +741,9 @@ function DiagramEditorContent({
               color="var(--grid-color, rgba(150, 150, 150, 0.1))"
               className="bg-background"
             />
-            <Controls />
+            <Controls className="rounded-md overflow-hidden shadow-md" />
             <MiniMap
+              className="rounded-lg overflow-hidden border border-border shadow-md"
               nodeColor={(node) => {
                 switch (node.type) {
                   case "tableNode":
@@ -760,17 +753,25 @@ function DiagramEditorContent({
                 }
               }}
             />
-            <Panel
-              position="top-center"
-              className="bg-card bg-opacity-70 p-2 rounded shadow text-xs"
-            >
-              Drag connections between fields • Click tables or relations to
-              edit
-            </Panel>
           </ReactFlow>
 
+          {/* Floating Toolbar for diagram-specific actions */}
+          <DiagramFloatingToolbar
+            hasUnsavedChanges={hasUnsavedChanges}
+            isGenerating={isGenerating}
+            isSaving={isSaving}
+            apiKeyMissing={apiKeyMissing}
+            rowCount={rowCount}
+            onRowCountChange={handleRowCountChange}
+            onAddTable={addNewTable}
+            onGenerateSQL={handleGenerateSQL}
+            onSave={saveDiagram}
+            nodesCount={nodes.length}
+            isUnauthenticated={isUnauthenticated}
+          />
+
           {/* Empty diagram message */}
-          {nodes.length === 0 && <EmptyDiagramMessage onGenerateFromPrompt={handleOpenSchemaDialog} />}
+          {nodes.length === 0 && <EmptyDiagramMessage />}
 
           {/* Sidebar toggle button */}
           <Button
@@ -788,8 +789,7 @@ function DiagramEditorContent({
           </Button>
 
           {/* Alerts Container */}
-          <div className="absolute left-4 top-4 z-10 flex flex-col gap-3">
-            {/* API Key Alert */}
+          <div className="absolute left-4 top-20 z-10 flex flex-col gap-3">
             {apiKeyMissing && (
               <ApiKeyAlert
                 compact={true}
@@ -799,17 +799,12 @@ function DiagramEditorContent({
                 isUnauthenticated={isUnauthenticated}
               />
             )}
-            
-            {/* Workspace Alert for unauthenticated users */}
-            {isUnauthenticated && (
-              <WorkspaceAlert
-                onSignIn={onSignIn}
-              />
-            )}
+
+            {isUnauthenticated && <WorkspaceAlert onSignIn={onSignIn} />}
           </div>
         </div>
 
-        {/* Unified sidebar with single AnimatePresence */}
+        {/* Sidebar */}
         <AnimatePresence>
           {isSidebarOpen && (
             <motion.div
@@ -853,54 +848,22 @@ function DiagramEditorContent({
         </AnimatePresence>
       </div>
 
-      {/* SQL Panel Toggle Button */}
-      {generatedSQL && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={toggleSQLPanel}
-          className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50 shadow-md gap-2 bg-card"
-        >
-          <Code className="h-4 w-4" />
-          {isSQLPanelOpen ? "Hide generated SQL" : "Show generated SQL"}
-        </Button>
+      {/* Full-page Generating Indicator Overlay */}
+      {isGenerating && (
+        <FadeIn delay={100}>
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100] pointer-events-auto">
+            <GeneratingIndicator
+              message={`Generating SQL for ${
+                project?.databaseType || "database"
+              }`}
+            />
+          </div>
+        </FadeIn>
       )}
-
-      {/* SQL Panel Slide-up */}
-      <AnimatePresence>
-        {isSQLPanelOpen && generatedSQL && (
-          <motion.div
-            className="absolute top-[56px] bottom-0 left-0 right-0 bg-background border-t border-border z-40 shadow-lg overflow-hidden"
-            initial={{ y: "100%" }}
-            animate={{ y: "0%" }}
-            exit={{ y: "100%" }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-          >
-            <div className="h-full overflow-auto">
-              <SQLDisplay
-                createTableSQL={generatedSQL.createTableSQL}
-                insertDataSQL={generatedSQL.insertDataSQL}
-                databaseType={project.databaseType}
-                project={project}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Schema Generation Dialog */}
-      <SchemaGenerationDialog
-        open={isSchemaDialogOpen}
-        onOpenChange={setIsSchemaDialogOpen}
-        onGenerateSchema={handleGenerateSchema}
-        project={project}
-        apiKeyMissing={apiKeyMissing}
-      />
     </div>
   );
 }
 
-// Wrapper component with ReactFlowProvider
 export default function DiagramEditor(props: DiagramEditorProps) {
   return (
     <ReactFlowProvider>

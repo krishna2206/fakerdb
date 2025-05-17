@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { TableField } from "@/types/types";
 import { Handle, Position, useUpdateNodeInternals } from "@xyflow/react";
-import { Table } from "lucide-react";
+import { Table2 } from "lucide-react";
 import { memo, useEffect } from "react";
 
 type TableNodeProps = {
@@ -33,7 +33,7 @@ function TableNode({ id, data, selected }: TableNodeProps) {
         >
           {data.name}
         </span>
-        <Table className="h-4 w-4 flex-shrink-0" />
+        <Table2 className="h-4 w-4 flex-shrink-0" />
       </div>
       <div className="py-1">
         {data.fields.map((field, index) => (
