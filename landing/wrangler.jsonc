@@ -1,0 +1,24 @@
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "fakerdb-landing",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-01",
+  "account_id": "117e35b5601636e4365965e059caba39",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "fakerdb-waitlist",
+      "database_id": "999bd922-d8fa-44eb-a5ea-04173bba9b31"
+    }
+  ],
+  "routes": [
+    { "pattern": "fakerdb.the10x.tech", "custom_domain": true }
+  ],
+  "workers_dev": false,
+  "observability": { "enabled": true }
+}
